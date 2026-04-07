@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLB UI Tool</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--color-background-primary, #fff); }
+  .outer { display: flex; gap: 1.5rem; padding: 1.5rem; align-items: flex-start; }
+  .panels { display: flex; flex-direction: column; gap: 1rem; width: 240px; flex-shrink: 0; }
+  .panel { border: 0.5px solid var(--color-border-tertiary, #ddd); display: flex; flex-direction: column; }
+  .panel summary {
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--color-text-secondary, #888); font-family: Arial, Helvetica, sans-serif;
+    padding: 8px 10px; border-bottom: 0.5px solid var(--color-border-tertiary, #ddd);
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel summary::-webkit-details-marker { display: none; }
+  .panel summary::after { content: '▾'; font-size: 8px; }
+  .panel[open] summary::after { content: '▴'; }
+  .panel-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .panel-export { border: 0.5px solid var(--color-border-tertiary, #ddd); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .panel-export-title { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary, #888); font-family: Arial, Helvetica, sans-serif; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border-tertiary, #ddd); }
+  .ctrl { display: flex; flex-direction: column; gap: 2px; }
+  .ctrl label { font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-text-secondary, #888); font-family: Arial, Helvetica, sans-serif; }
+  .ctrl-row { display: flex; align-items: center; gap: 6px; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-row span { font-size: 10px; font-family: monospace; color: var(--color-text-primary, #111); min-width: 36px; text-align: right; }
+  .data-list { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow-y: auto; }
+  .data-item { display: flex; align-items: center; gap: 5px; padding: 3px 5px; border: 0.5px solid var(--color-border-tertiary, #ddd); cursor: grab; user-select: none; background: var(--color-background-primary, #fff); touch-action: none; }
+  .data-item.dragging { opacity: 0.4; }
+  .data-item.drag-over { border-color: #111; }
+  .data-item input[type=checkbox] { flex-shrink: 0; width: 12px; height: 12px; }
+  .item-label { flex: 1; font-size: 10px; font-family: Arial, Helvetica, sans-serif; color: var(--color-text-primary, #111); }
+  .drag-handle { font-size: 10px; color: var(--color-text-secondary, #888); }
+  .preview-val { font-size: 9px; font-family: monospace; color: var(--color-text-secondary, #888); max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .export-btn { width: 100%; padding: 8px; font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; background: #111; color: #fff; border: none; cursor: pointer; }
+  .export-btn:active { background: #444; }
+  .sticky-scene { position: sticky; top: 1.5rem; flex-shrink: 0; align-self: flex-start; }
+  .phone { width: 320px; height: 620px; background: #000; border-radius: 36px; border: 2px solid #111; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.28); display: flex; flex-direction: column; position: relative; }
+  .notch-overlay { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 90px; height: 26px; background: #000; border-radius: 0 0 14px 14px; z-index: 10; pointer-events: none; }
+  .status-bar { flex-shrink: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 6px 14px 2px 14px; position: relative; z-index: 5; }
+  .status-bar span { font-family: Arial, Helvetica, sans-serif; font-size: 8px; font-weight: 600; color: #fff; letter-spacing: 0.02em; }
+  .status-icons { display: flex; gap: 3px; align-items: center; }
+  .screen { flex: 1; background: #fff; display: flex; flex-direction: column; position: relative; overflow: hidden; min-height: 0; }
+  .name-area { flex-shrink: 0; width: 100%; position: relative; z-index: 1; }
+  .name-svg { display: block; width: 100%; }
+  .nav-area { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+  .nav-svg { display: block; overflow: visible; }
+  .data-block { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; }
+  .data-columns { display: flex; width: 100%; }
+  .data-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .data-row { display: flex; align-items: center; width: 100%; overflow: hidden; font-family: Arial, Helvetica, sans-serif; letter-spacing: 0.015em; line-height: 1.3; text-transform: uppercase; color: #111; }
+  .data-key { flex-shrink: 0; white-space: nowrap; }
+  .data-leader { flex: 1; min-width: 0; height: 0; margin: 0 2px; }
+  .data-val { flex-shrink: 0; white-space: nowrap; text-align: right; }
+  .bottom-bar { flex-shrink: 0; width: 100%; background: #000; }
+
+  @media (max-width: 640px) {
+    .outer { flex-direction: column; align-items: center; padding: 1rem; gap: 1rem; }
+    .sticky-scene { position: static; order: -1; }
+    .panels { width: 100%; max-width: 600px; }
+    .data-list { max-height: none; }
+    .ctrl label { font-size: 11px; }
+    .ctrl-row input[type=range] { height: 32px; }
+    .ctrl-row span { font-size: 12px; }
+    .item-label { font-size: 12px; }
+    .drag-handle { font-size: 14px; padding: 4px 2px; }
+    .data-item { padding: 6px 8px; }
+    .export-btn { padding: 14px; font-size: 12px; }
+  }
+
+  @media (max-width: 359px) {
+    .phone-scale-wrap {
+      transform-origin: top center;
+      transform: scale(0.88);
+      margin-bottom: -74px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="outer">
+  <div class="panels">
+
+    <div class="panel-export">
+      <div class="panel-export-title">Export state</div>
+      <button class="export-btn" id="exportbtn">Send all values to Claude ↗</button>
+    </div>
+
+    <details class="panel" open>
+      <summary>Safe zones</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Top black bar (px)</label><div class="ctrl-row"><input type="range" id="topbar" min="0" max="50" step="1" value="20"><span id="topbar-out">20</span></div></div>
+        <div class="ctrl"><label>Bottom black bar (px)</label><div class="ctrl-row"><input type="range" id="botbar" min="0" max="50" step="1" value="35"><span id="botbar-out">35</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary>Header</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Top padding (px)</label><div class="ctrl-row"><input type="range" id="toppad" min="0" max="40" step="1" value="0"><span id="toppad-out">0</span></div></div>
+        <div class="ctrl"><label>Side padding (px)</label><div class="ctrl-row"><input type="range" id="pad" min="0" max="40" step="1" value="0"><span id="pad-out">0</span></div></div>
+        <div class="ctrl"><label>Letter spacing (em)</label><div class="ctrl-row"><input type="range" id="headls" min="-0.05" max="0.08" step="0.005" value="-0.03"><span id="headls-out">-0.030</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary>Navigation</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Font size (px)</label><div class="ctrl-row"><input type="range" id="navsize" min="8" max="22" step="1" value="14"><span id="navsize-out">14</span></div></div>
+        <div class="ctrl"><label>Letter spacing (em)</label><div class="ctrl-row"><input type="range" id="navls" min="-0.05" max="0.3" step="0.005" value="0.08"><span id="navls-out">0.080</span></div></div>
+        <div class="ctrl"><label>Vertical spacing (px)</label><div class="ctrl-row"><input type="range" id="navgap" min="24" max="100" step="2" value="38"><span id="navgap-out">38</span></div></div>
+        <div class="ctrl"><label>Vertical position (px)</label><div class="ctrl-row"><input type="range" id="navtop" min="40" max="400" step="4" value="216"><span id="navtop-out">216</span></div></div>
+        <div class="ctrl"><label>Stroke weight</label><div class="ctrl-row"><input type="range" id="navsw" min="0" max="1.5" step="0.05" value="0.7"><span id="navsw-out">0.70</span></div></div>
+        <div class="ctrl"><label>Number size (px)</label><div class="ctrl-row"><input type="range" id="numsize" min="6" max="18" step="1" value="14"><span id="numsize-out">14</span></div></div>
+        <div class="ctrl"><label>Number offset left of nav (px)</label><div class="ctrl-row"><input type="range" id="numoffset" min="4" max="80" step="1" value="68"><span id="numoffset-out">68</span></div></div>
+        <div class="ctrl"><label>Dash offset right of nav (px)</label><div class="ctrl-row"><input type="range" id="dashoffset" min="4" max="80" step="1" value="65"><span id="dashoffset-out">65</span></div></div>
+        <div class="ctrl"><label>Dash width (px)</label><div class="ctrl-row"><input type="range" id="dashw" min="4" max="40" step="1" value="9"><span id="dashw-out">9</span></div></div>
+        <div class="ctrl"><label>Dash gap (px)</label><div class="ctrl-row"><input type="range" id="dashgap" min="1" max="8" step="0.5" value="2.5"><span id="dashgap-out">2.5</span></div></div>
+        <div class="ctrl"><label>Dash stroke weight</label><div class="ctrl-row"><input type="range" id="dashsw" min="0.2" max="10" step="0.1" value="3.4"><span id="dashsw-out">3.4</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel">
+      <summary>Grain — header</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Frequency</label><div class="ctrl-row"><input type="range" id="hfreq" min="0.01" max="0.15" step="0.005" value="0.09"><span id="hfreq-out">0.090</span></div></div>
+        <div class="ctrl"><label>Displacement</label><div class="ctrl-row"><input type="range" id="hdisp" min="0" max="4" step="0.1" value="1.2"><span id="hdisp-out">1.2</span></div></div>
+        <div class="ctrl"><label>Octaves</label><div class="ctrl-row"><input type="range" id="hoct" min="1" max="6" step="1" value="4"><span id="hoct-out">4</span></div></div>
+        <div class="ctrl"><label>Seed</label><div class="ctrl-row"><input type="range" id="hseed" min="1" max="99" step="1" value="12"><span id="hseed-out">12</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel">
+      <summary>Grain — nav</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Frequency</label><div class="ctrl-row"><input type="range" id="nfreq" min="0.01" max="0.15" step="0.005" value="0.09"><span id="nfreq-out">0.090</span></div></div>
+        <div class="ctrl"><label>Displacement</label><div class="ctrl-row"><input type="range" id="ndisp" min="0" max="4" step="0.1" value="1.2"><span id="ndisp-out">1.2</span></div></div>
+        <div class="ctrl"><label>Octaves</label><div class="ctrl-row"><input type="range" id="noct" min="1" max="6" step="1" value="4"><span id="noct-out">4</span></div></div>
+        <div class="ctrl"><label>Seed</label><div class="ctrl-row"><input type="range" id="nseed" min="1" max="99" step="1" value="25"><span id="nseed-out">25</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel">
+      <summary>Data block</summary>
+      <div class="panel-body">
+        <div class="ctrl"><label>Font size (px)</label><div class="ctrl-row"><input type="range" id="dsize" min="4" max="11" step="0.5" value="6"><span id="dsize-out">6</span></div></div>
+        <div class="ctrl"><label>Letter spacing (em)</label><div class="ctrl-row"><input type="range" id="dls" min="0" max="0.2" step="0.005" value="0.015"><span id="dls-out">0.015</span></div></div>
+        <div class="ctrl"><label>Line height</label><div class="ctrl-row"><input type="range" id="dlh" min="1.0" max="2.5" step="0.05" value="1.3"><span id="dlh-out">1.30</span></div></div>
+        <div class="ctrl"><label>Stroke weight</label><div class="ctrl-row"><input type="range" id="dsw" min="0" max="0.8" step="0.05" value="0.3"><span id="dsw-out">0.30</span></div></div>
+        <div class="ctrl"><label>Leader thickness (px)</label><div class="ctrl-row"><input type="range" id="leadersw" min="0.2" max="3" step="0.1" value="1"><span id="leadersw-out">1.0</span></div></div>
+        <div class="ctrl"><label>Left col padding (px)</label><div class="ctrl-row"><input type="range" id="dlpad" min="0" max="20" step="1" value="1"><span id="dlpad-out">1</span></div></div>
+        <div class="ctrl"><label>Right col padding (px)</label><div class="ctrl-row"><input type="range" id="drpad" min="0" max="20" step="1" value="1"><span id="drpad-out">1</span></div></div>
+        <div class="ctrl"><label>Column gap (px)</label><div class="ctrl-row"><input type="range" id="dgap" min="0" max="20" step="1" value="8"><span id="dgap-out">8</span></div></div>
+        <div class="ctrl"><label>Bottom padding (px)</label><div class="ctrl-row"><input type="range" id="dbpad" min="2" max="24" step="1" value="2"><span id="dbpad-out">2</span></div></div>
+        <div class="ctrl"><label>Grain frequency</label><div class="ctrl-row"><input type="range" id="dfreq" min="0.01" max="0.3" step="0.005" value="0.1"><span id="dfreq-out">0.100</span></div></div>
+        <div class="ctrl"><label>Grain displacement</label><div class="ctrl-row"><input type="range" id="ddisp" min="0" max="3" step="0.05" value="0.85"><span id="ddisp-out">0.85</span></div></div>
+        <div class="ctrl"><label>Grain octaves</label><div class="ctrl-row"><input type="range" id="doct" min="1" max="6" step="1" value="4"><span id="doct-out">4</span></div></div>
+        <div class="ctrl"><label>Grain seed</label><div class="ctrl-row"><input type="range" id="dseed" min="1" max="99" step="1" value="22"><span id="dseed-out">22</span></div></div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary>Data fields — drag to reorder</summary>
+      <div class="panel-body">
+        <div class="data-list" id="datalist"></div>
+      </div>
+    </details>
+
+  </div>
+
+  <div class="sticky-scene">
+    <div class="phone-scale-wrap">
+      <div class="phone">
+        <div class="notch-overlay"></div>
+        <div class="status-bar" id="statusbar">
+          <span id="statustime">9:41</span>
+          <div class="status-icons">
+            <svg width="12" height="9" viewBox="0 0 12 9"><rect x="0" y="3" width="2" height="6" fill="white"/><rect x="3" y="2" width="2" height="7" fill="white"/><rect x="6" y="1" width="2" height="8" fill="white"/><rect x="9" y="0" width="2" height="9" fill="white"/></svg>
+            <svg width="10" height="9" viewBox="0 0 10 9"><path d="M5 1.5 Q7.5 3.5 9 3 Q7 5 5 7 Q3 5 1 3 Q2.5 3.5 5 1.5Z" fill="none" stroke="white" stroke-width="1"/><circle cx="5" cy="5" r="1" fill="white"/></svg>
+            <svg width="18" height="9" viewBox="0 0 18 9"><rect x="0" y="1" width="15" height="7" rx="2" fill="none" stroke="white" stroke-width="1"/><rect x="1.5" y="2.5" width="10" height="4" rx="1" fill="white"/><rect x="16" y="3" width="1.5" height="3" rx="0.5" fill="white"/></svg>
+          </div>
+        </div>
+        <div class="screen">
+          <div style="background:#000;flex-shrink:0;width:100%;" id="topbar-el"></div>
+          <div class="name-area" id="namearea">
+            <svg class="name-svg" id="namesvg" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <filter id="gn" x="-4%" y="-30%" width="110%" height="170%" color-interpolation-filters="sRGB">
+                  <feTurbulence id="gn-turb" type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="12" result="noise"/>
+                  <feDisplacementMap id="gn-disp" in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+              </defs>
+              <text id="nametext" x="0" y="36" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" letter-spacing="-0.03em" fill="#111" stroke="#111" stroke-width="0.4" filter="url(#gn)">MICHAEL LANE BOLDT</text>
+            </svg>
+          </div>
+          <div class="nav-area" id="navarea" style="top:216px;">
+            <svg class="nav-svg" id="navsvg">
+              <defs>
+                <filter id="gnav" x="-12%" y="-10%" width="130%" height="125%" color-interpolation-filters="sRGB">
+                  <feTurbulence id="gnav-turb" type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="25" result="noise"/>
+                  <feDisplacementMap id="gnav-disp" in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+              </defs>
+            </svg>
+          </div>
+          <div class="data-block" id="datablock">
+            <svg id="datasvg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+              <defs>
+                <filter id="dgrain" x="-2%" y="-2%" width="104%" height="104%" color-interpolation-filters="sRGB">
+                  <feTurbulence id="dgrain-turb" type="fractalNoise" baseFrequency="0.1" numOctaves="4" seed="22" result="noise"/>
+                  <feDisplacementMap id="dgrain-disp" in="SourceGraphic" in2="noise" scale="0.85" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+              </defs>
+            </svg>
+            <div class="data-columns" id="datacolumns"></div>
+          </div>
+        </div>
+        <div class="bottom-bar" id="botbar-el"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FIELDS=[
+  {id:'date',    label:'Date',        fn:()=>new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}).toUpperCase()},
+  {id:'time',    label:'Time',        fn:()=>new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})},
+  {id:'tz',      label:'Timezone',    fn:()=>Intl.DateTimeFormat().resolvedOptions().timeZone.toUpperCase()},
+  {id:'utc',     label:'UTC',         fn:()=>{const o=-new Date().getTimezoneOffset(),s=o>=0?'+':'-';return 'UTC'+s+String(Math.floor(Math.abs(o)/60)).padStart(2,'0')+':'+String(Math.abs(o)%60).padStart(2,'0');}},
+  {id:'day',     label:'Day',         fn:()=>new Date().toLocaleDateString('en-US',{weekday:'long'}).toUpperCase()},
+  {id:'week',    label:'Week',        fn:()=>{const d=new Date(),s=new Date(d.getFullYear(),0,1);return 'WK'+Math.ceil(((d-s)/86400000+s.getDay()+1)/7);}},
+  {id:'elapsed', label:'On page',     fn:()=>Math.floor((Date.now()-startTime)/1000)+'S'},
+  {id:'locale',  label:'Locale',      fn:()=>navigator.language.toUpperCase()},
+  {id:'vw',      label:'Screen W',    fn:()=>window.screen.width+'PX'},
+  {id:'vh',      label:'Screen H',    fn:()=>window.screen.height+'PX'},
+  {id:'dpr',     label:'Pixel ratio', fn:()=>window.devicePixelRatio.toFixed(1)+'X'},
+  {id:'conn',    label:'Connection',  fn:()=>(navigator.connection?.effectiveType||'UNKNOWN').toUpperCase()},
+  {id:'lat',     label:'Lat/Lon',     fn:()=>userLat?userLat.toFixed(4)+'N '+Math.abs(userLon).toFixed(4)+'W':'---.---- ---.----'},
+  {id:'ig',      label:'Instagram',   fn:()=>'@F333DBACK'},
+  {id:'site',    label:'URL',         fn:()=>'MICHAELLANEBOLDT.COM'},
+  {id:'loc',     label:'Location',    fn:()=>'LOS ANGELES CA'},
+  {id:'role',    label:'Role',        fn:()=>'DESIGNER / TECHNOLOGIST'},
+  {id:'school',  label:'Institution', fn:()=>'SCI-ARC'},
+  {id:'prize',   label:'Award',       fn:()=>'GEHRY PRIZE 2024'},
+  {id:'mag',     label:'Publication', fn:()=>'THE BRUTALIST MAGAZINE'},
+  {id:'version', label:'Version',     fn:()=>'V1.0 2025'},
+];
+
+let startTime=Date.now(),userLat=null,userLon=null;
+let checked=new Set(['date','time','tz','utc','day','week','elapsed','vw','vh','dpr','conn','ig','site','version']);
+let order=['date','time','tz','utc','day','week','elapsed','locale','vw','vh','dpr','conn','lat','ig','site','loc','role','school','prize','mag','version'];
+let dragSrc=null;
+
+if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>{userLat=p.coords.latitude;userLon=p.coords.longitude;renderAll();});
+
+function getLive(){const m={};FIELDS.forEach(f=>{try{m[f.id]=f.fn();}catch(e){m[f.id]='—';}});return m;}
+function g(id){return document.getElementById(id);}
+function fv(id){return parseFloat(g(id).value);}
+function iv(id){return parseInt(g(id).value);}
+function out(id,val){g(id+'-out').textContent=val;}
+
+const SLIDER_IDS=['topbar','botbar','toppad','pad','headls','navsize','navls','navgap','navtop','navsw',
+  'numsize','numoffset','dashoffset','dashw','dashgap','dashsw',
+  'hfreq','hdisp','hoct','hseed','nfreq','ndisp','noct','nseed',
+  'dsize','dls','dlh','dsw','leadersw','dlpad','drpad','dgap','dbpad',
+  'dfreq','ddisp','doct','dseed'];
+
+function reorderFields(srcId, targetId) {
+  const si=order.indexOf(srcId),ti=order.indexOf(targetId);
+  order.splice(si,1);order.splice(ti,0,srcId);
+  buildList();renderAll();
+}
+
+function buildList(){
+  const list=g('datalist');
+  list.innerHTML='';
+  const vals=getLive();
+  let touchSrc=null;
+
+  order.forEach(id=>{
+    const field=FIELDS.find(f=>f.id===id);
+    if(!field) return;
+    const div=document.createElement('div');
+    div.className='data-item';
+    div.draggable=true;
+    div.dataset.fieldId=id;
+    div.innerHTML=`<span class="drag-handle">⠿</span><input type="checkbox" ${checked.has(id)?'checked':''}><span class="item-label">${field.label}</span><span class="preview-val">${vals[id]||'—'}</span>`;
+    div.querySelector('input').addEventListener('change',e=>{
+      if(e.target.checked) checked.add(id); else checked.delete(id);
+      renderAll();
+    });
+
+    // Mouse drag
+    div.addEventListener('dragstart',()=>{dragSrc=id;div.classList.add('dragging');});
+    div.addEventListener('dragend',()=>{div.classList.remove('dragging');document.querySelectorAll('.data-item').forEach(el=>el.classList.remove('drag-over'));});
+    div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('drag-over');});
+    div.addEventListener('dragleave',()=>div.classList.remove('drag-over'));
+    div.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(dragSrc&&dragSrc!==id) reorderFields(dragSrc,id);
+    });
+
+    // Touch drag
+    div.addEventListener('touchstart',e=>{
+      touchSrc=id;
+      div.classList.add('dragging');
+    },{passive:true});
+    div.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      const touch=e.touches[0];
+      document.querySelectorAll('.data-item').forEach(el=>el.classList.remove('drag-over'));
+      const els=document.elementsFromPoint(touch.clientX,touch.clientY);
+      const target=els.find(el=>el.classList&&el.classList.contains('data-item')&&el!==div);
+      if(target) target.classList.add('drag-over');
+    },{passive:false});
+    div.addEventListener('touchend',e=>{
+      div.classList.remove('dragging');
+      const touch=e.changedTouches[0];
+      const els=document.elementsFromPoint(touch.clientX,touch.clientY);
+      const target=els.find(el=>el.classList&&el.classList.contains('data-item')&&el!==div);
+      document.querySelectorAll('.data-item').forEach(el=>el.classList.remove('drag-over'));
+      if(target&&touchSrc&&target.dataset.fieldId&&target.dataset.fieldId!==touchSrc){
+        reorderFields(touchSrc,target.dataset.fieldId);
+      }
+      touchSrc=null;
+    },{passive:true});
+
+    list.appendChild(div);
+  });
+}
+
+g('exportbtn').addEventListener('click',()=>{
+  const sv={};
+  SLIDER_IDS.forEach(id=>{sv[id]=g(id).value;});
+  const active=order.filter(id=>checked.has(id));
+  const msg='SLIDER VALUES:\n'+JSON.stringify(sv,null,2)+'\n\nDATA FIELD ORDER (checked):\n'+active.join(', ')+'\n\nALL FIELD ORDER:\n'+order.join(', ');
+  sendPrompt(msg);
+});
+
+function renderNav(navsize,navls,navgap,navsw,numsize,numoffset,dashoffset,dashw,dashgap,dashsw,nfreq,ndisp,noct,nseed){
+  const labels=['WORK','ABOUT','CV','CONTACT'];
+  const svgEl=g('navsvg');
+  const W=300,cx=W/2;
+  const totalH=navgap*3+navsize+10;
+  svgEl.setAttribute('viewBox','0 0 '+W+' '+totalH);
+  svgEl.setAttribute('width',W);
+  svgEl.setAttribute('height',totalH);
+  g('gnav-turb').setAttribute('baseFrequency',nfreq);
+  g('gnav-turb').setAttribute('numOctaves',noct);
+  g('gnav-turb').setAttribute('seed',nseed);
+  g('gnav-disp').setAttribute('scale',ndisp);
+  svgEl.querySelectorAll('.nav-row').forEach(el=>el.remove());
+  labels.forEach((label,i)=>{
+    const y=i*navgap+navsize;
+    const grp=document.createElementNS('http://www.w3.org/2000/svg','g');
+    grp.setAttribute('class','nav-row');
+    grp.setAttribute('filter','url(#gnav)');
+    const num=document.createElementNS('http://www.w3.org/2000/svg','text');
+    num.setAttribute('x',cx-numoffset);num.setAttribute('y',y);num.setAttribute('text-anchor','end');
+    num.setAttribute('font-family','Arial, Helvetica, sans-serif');num.setAttribute('font-size',numsize);
+    num.setAttribute('font-weight','400');num.setAttribute('fill','#111');num.setAttribute('stroke','#111');
+    num.setAttribute('stroke-width',navsw*0.6);num.setAttribute('letter-spacing','0.05em');
+    num.textContent=String(i+1).padStart(2,'0');
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',cx);txt.setAttribute('y',y);txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('font-family','Arial, Helvetica, sans-serif');txt.setAttribute('font-size',navsize);
+    txt.setAttribute('font-weight','400');txt.setAttribute('fill','#111');txt.setAttribute('stroke','#111');
+    txt.setAttribute('stroke-width',navsw);txt.setAttribute('letter-spacing',navls+'em');txt.textContent=label;
+    const dsx=cx+dashoffset,dashY=y-navsize*0.28;
+    const d1=document.createElementNS('http://www.w3.org/2000/svg','line');
+    d1.setAttribute('x1',dsx);d1.setAttribute('y1',dashY);d1.setAttribute('x2',dsx+dashw);d1.setAttribute('y2',dashY);
+    d1.setAttribute('stroke','#111');d1.setAttribute('stroke-width',dashsw);
+    const d2=document.createElementNS('http://www.w3.org/2000/svg','line');
+    d2.setAttribute('x1',dsx+dashw+dashgap);d2.setAttribute('y1',dashY);d2.setAttribute('x2',dsx+dashw+dashgap+dashw);d2.setAttribute('y2',dashY);
+    d2.setAttribute('stroke','#111');d2.setAttribute('stroke-width',dashsw);
+    grp.appendChild(num);grp.appendChild(txt);grp.appendChild(d1);grp.appendChild(d2);
+    svgEl.appendChild(grp);
+  });
+}
+
+function renderAll(){
+  const topbar=iv('topbar'),botbar=iv('botbar'),toppad=iv('toppad'),pad=iv('pad'),headls=fv('headls');
+  const navsize=iv('navsize'),navls=fv('navls'),navgap=iv('navgap'),navtop=iv('navtop'),navsw=fv('navsw');
+  const numsize=iv('numsize'),numoffset=iv('numoffset'),dashoffset=iv('dashoffset');
+  const dashw=iv('dashw'),dashgap=fv('dashgap'),dashsw=fv('dashsw');
+  const hfreq=fv('hfreq'),hdisp=fv('hdisp'),hoct=iv('hoct'),hseed=iv('hseed');
+  const nfreq=fv('nfreq'),ndisp=fv('ndisp'),noct=iv('noct'),nseed=iv('nseed');
+  const dsize=fv('dsize'),dls=fv('dls'),dlh=fv('dlh'),dsw=fv('dsw');
+  const leadersw=fv('leadersw'),dlpad=iv('dlpad'),drpad=iv('drpad'),dgap=iv('dgap'),dbpad=iv('dbpad');
+  const dfreq=fv('dfreq'),ddisp=fv('ddisp'),doct=iv('doct'),dseed=iv('dseed');
+
+  out('topbar',topbar);out('botbar',botbar);out('toppad',toppad);out('pad',pad);
+  out('headls',headls.toFixed(3));out('navsize',navsize);out('navls',navls.toFixed(3));
+  out('navgap',navgap);out('navtop',navtop);out('navsw',navsw.toFixed(2));
+  out('numsize',numsize);out('numoffset',numoffset);out('dashoffset',dashoffset);
+  out('dashw',dashw);out('dashgap',dashgap.toFixed(1));out('dashsw',dashsw.toFixed(1));
+  out('hfreq',hfreq.toFixed(3));out('hdisp',hdisp.toFixed(1));out('hoct',hoct);out('hseed',hseed);
+  out('nfreq',nfreq.toFixed(3));out('ndisp',ndisp.toFixed(2));out('noct',noct);out('nseed',nseed);
+  out('dsize',dsize);out('dls',dls.toFixed(3));out('dlh',dlh.toFixed(2));out('dsw',dsw.toFixed(2));
+  out('leadersw',leadersw.toFixed(1));out('dlpad',dlpad);out('drpad',drpad);out('dgap',dgap);out('dbpad',dbpad);
+  out('dfreq',dfreq.toFixed(3));out('ddisp',ddisp.toFixed(2));out('doct',doct);out('dseed',dseed);
+
+  g('topbar-el').style.height=topbar+'px';
+  g('botbar-el').style.height=botbar+'px';
+
+  const now=new Date();
+  g('statustime').textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+
+  const namearea=g('namearea');
+  namearea.style.paddingTop=toppad+'px';
+  namearea.style.paddingLeft=pad+'px';
+  namearea.style.paddingRight=pad+'px';
+
+  const lbl='MICHAEL LANE BOLDT',fs=32;
+  const cv=document.createElement('canvas');
+  const ctx=cv.getContext('2d');
+  ctx.font='bold '+fs+'px Arial';
+  let w=0;
+  for(let i=0;i<lbl.length;i++) w+=ctx.measureText(lbl[i]).width;
+  w+=headls*fs*(lbl.length-1);
+  w=Math.ceil(w);
+  const namesvg=g('namesvg');
+  namesvg.setAttribute('viewBox','0 0 '+w+' 42');
+  namesvg.setAttribute('height','42');
+  g('nametext').setAttribute('letter-spacing',headls+'em');
+  g('gn-turb').setAttribute('baseFrequency',hfreq);
+  g('gn-turb').setAttribute('numOctaves',hoct);
+  g('gn-turb').setAttribute('seed',hseed);
+  g('gn-disp').setAttribute('scale',hdisp);
+
+  g('navarea').style.top=navtop+'px';
+  renderNav(navsize,navls,navgap,navsw,numsize,numoffset,dashoffset,dashw,dashgap,dashsw,nfreq,ndisp,noct,nseed);
+
+  g('dgrain-turb').setAttribute('baseFrequency',dfreq);
+  g('dgrain-turb').setAttribute('numOctaves',doct);
+  g('dgrain-turb').setAttribute('seed',dseed);
+  g('dgrain-disp').setAttribute('scale',ddisp);
+
+  const vals=getLive();
+  const active=order.filter(id=>checked.has(id));
+  const half=Math.ceil(active.length/2);
+  const dc=g('datacolumns');
+  dc.style.paddingBottom=dbpad+'px';
+  dc.style.gap=dgap+'px';
+  dc.innerHTML='';
+
+  [active.slice(0,half),active.slice(half)].forEach((colItems,ci)=>{
+    const col=document.createElement('div');
+    col.className='data-col';
+    col.style.paddingLeft=(ci===0?dlpad:0)+'px';
+    col.style.paddingRight=(ci===1?drpad:0)+'px';
+    col.style.filter='url(#dgrain)';
+    colItems.forEach(id=>{
+      const field=FIELDS.find(f=>f.id===id);
+      const val=vals[id]||'—';
+      const row=document.createElement('div');
+      row.className='data-row';
+      row.style.fontSize=dsize+'px';
+      row.style.letterSpacing=dls+'em';
+      row.style.lineHeight=dlh;
+      if(dsw>0) row.style.webkitTextStroke=dsw+'px #111';
+      const keyEl=document.createElement('span');
+      keyEl.className='data-key';
+      keyEl.textContent=field.label.toUpperCase();
+      const leaderEl=document.createElement('span');
+      leaderEl.className='data-leader';
+      leaderEl.style.borderBottom=leadersw+'px solid #111';
+      leaderEl.style.position='relative';
+      leaderEl.style.top='-'+(dsize*0.35)+'px';
+      const valEl=document.createElement('span');
+      valEl.className='data-val';
+      valEl.textContent=val;
+      row.appendChild(keyEl);
+      row.appendChild(leaderEl);
+      row.appendChild(valEl);
+      col.appendChild(row);
+    });
+    dc.appendChild(col);
+  });
+}
+
+SLIDER_IDS.forEach(id=>g(id).addEventListener('input',renderAll));
+setInterval(()=>renderAll(),1000);
+buildList();
+renderAll();
+</script>
+</body>
+</html>
