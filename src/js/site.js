@@ -1,10 +1,9 @@
 /* ============================================================
-   MICHAELLANEBOLDT.COM — site.js  v2.0
-   - Phone vs desktop detection via pointer + userAgent
-   - Container-width-relative layout (no hardcoded 320)
-   - Desktop lightbox (images-full/) with 150ms crossfade
-   - Safe zones + status bar hidden in framed mode
-   - Nav renders after layout via requestAnimationFrame
+   MICHAELLANEBOLDT.COM — site.js  v3.0
+   Fully dynamic — projects loaded from projects/index.json
+   and projects/NN-slug/manifest.json at runtime.
+   To add a project: create folder, add manifest.json,
+   add folder name to projects/index.json. No JS edits needed.
    ============================================================ */
 'use strict';
 
@@ -13,7 +12,7 @@ const isIPad = /iPad/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isMobilePhone = window.matchMedia('(pointer: coarse)').matches &&
   /iPhone|Android/i.test(navigator.userAgent) && !isIPad;
-const isDesktop = !isMobilePhone; // tablets + laptops + desktops all get framed
+const isDesktop = !isMobilePhone;
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const C = {
@@ -36,11 +35,10 @@ const C = {
   cnt_size: 12, cnt_sw: 0.7, cnt_pad: 15, cnt_h: 18,
   cv_pad: 2, cv_tpad: 0, cv_indent: 11, cv_sgap: 8,
   cv_trsw: 0.7, cv_ssw: 2, cv_sdw: 6, cv_sdg: 4,
-  // Desktop content window dimensions (CSS px)
-  desktop_w: 340, desktop_h: 738,
+  desktop_w: 340, desktop_h: 584,
 };
 
-// ── CONTENT ───────────────────────────────────────────────────────────────────
+// ── STATIC CONTENT ────────────────────────────────────────────────────────────
 const ABOUT_PARAS = [
   "IS A DESIGNER AND TECHNOLOGIST WORKING ACROSS COMPUTATION, MATERIAL SYSTEMS, AND CULTURAL PRODUCTION. HE HOLDS A MASTER OF ARCHITECTURE FROM THE SOUTHERN CALIFORNIA INSTITUTE OF ARCHITECTURE AND IS A GEHRY PRIZE RECIPIENT. HE CURRENTLY WORKS AS A ROBOTIC TECHNICIAN AND INSTRUCTOR AT SCI-ARC.",
   "HIS DESIGN PRACTICE IS SITUATED BETWEEN MONUMENTAL AUSTERITY, MONOLITHIC EXCESS, AND MATERIAL RE-USE — USING AI, AUTOMATION, AND FABRICATION AS CULTURAL INFRASTRUCTURE. RECENT WORK ENGAGES POST-INDUSTRIAL AESTHETICS, SYSTEMS DESIGN, AND ANTI-EXTRACTIVE MATERIAL LOGICS ACROSS DIGITAL AND PHYSICAL PRODUCTION."
@@ -51,10 +49,6 @@ const CONTACT_LINES = [
   "MICHAEL_BOLDT@SCIARC.EDU", "IG @ F333DBACK"
 ];
 
-// ── CV DATA ───────────────────────────────────────────────────────────────────
-// Raw notation — symbols render literally on the page.
-// weight: 'heavy' = bsw:0.7, 'light' = bsw:0.3
-// Rule: # lines → heavy, > lines → heavy, >> lines → light
 const CV_LINES = [
   { text: '# EXPERIENCE',                                                              weight: 'heavy' },
   { text: '> ROBOTIC TECHNICIAN — SCI-ARC :: 2025—PRESENT',                           weight: 'heavy' },
@@ -66,14 +60,12 @@ const CV_LINES = [
   { text: '> TEACHING ASSISTANT — SCI-ARC :: 2022—2024',                              weight: 'heavy' },
   { text: '> ARCHITECTURE INTERN — MARKHARRISARCHITECTS :: 2021—2023',                weight: 'heavy' },
   { text: '> APPRENTICE — ZIMBELMAN GUITARS :: 2021—2023',                            weight: 'heavy' },
-
   { text: '# EDUCATION',                                                               weight: 'heavy' },
   { text: '> M.ARCH I',                                                                weight: 'heavy' },
   { text: '>> SCI-ARC — LOS ANGELES :: 2021—2024',                                    weight: 'light' },
   { text: '>> GEHRY PRIZE — BEST GRADUATE THESIS',                                    weight: 'light' },
   { text: '> BS PHYSICS',                                                              weight: 'heavy' },
   { text: '>> REGIS UNIVERSITY — DENVER :: 2015—2020',                                weight: 'light' },
-
   { text: '# FABRICATION + ROBOTICS',                                                 weight: 'heavy' },
   { text: '> ROBOTICS',                                                                weight: 'heavy' },
   { text: '>> ABB IRB 6700 — TOOLPATH DEVELOPMENT — DIGITAL-TO-PHYSICAL PIPELINES',   weight: 'light' },
@@ -83,7 +75,6 @@ const CV_LINES = [
   { text: '>> LIDAR — PHOTOGRAMMETRY — POINT CLOUD PROCESSING — MESH RECONSTRUCTION', weight: 'light' },
   { text: '> ELECTRONICS',                                                             weight: 'heavy' },
   { text: '>> PCB DESIGN — AUDIO ELECTRONICS — SOLDERING — ARDUINO',                  weight: 'light' },
-
   { text: '# SOFTWARE',                                                                weight: 'heavy' },
   { text: '> 3D + COMPUTATION',                                                        weight: 'heavy' },
   { text: '>> RHINO — GRASSHOPPER — HOUDINI — ROBOTSTUDIO — UNITY — UNREAL ENGINE',   weight: 'light' },
@@ -93,53 +84,6 @@ const CV_LINES = [
   { text: '>> ADOBE SUITE — AUTOCAD — PROCESSING',                                     weight: 'light' },
 ];
 
-const PROJECTS = [
-  // To add a project: add an entry here and create the folder.
-  // images: array of {} for auto-aspect single images, or {carousel:true, slides:N} for carousel.
-  // num must match the folder prefix exactly (e.g. num:'01' -> projects/01-spolia/)
-  {
-    id: 'spolia', num: '01', title: 'SPOLIA', slug: 'spolia',
-    desc: 'A THESIS PROJECT EXPLORING COOPERATIVE MULTISCALAR SPOLIATION AS AN ALTERNATIVE SYSTEM OF ARCHITECTURE AND SOCIAL/ECONOMIC ORGANIZATION. CONSTRUCTED FROM THE STEEL OF DECOMMISSIONED INDUSTRIAL PLANTS. AWARDED THE FRANK GEHRY PRIZE FOR BEST GRADUATE THESIS AT SCI-ARC.',
-    images: [{ carousel: true, slides: 4 }, {}, {}]
-  },
-  {
-    id: 'decibel', num: '02', title: 'DECIBEL', slug: 'decibel',
-    desc: 'A 20,000 SQ METER MIXED-USE DEVELOPMENT IN DTLA — A MAXIMALLY ARTICULATED MEGASTRUCTURE FOR MUSICIANS. EQUAL PARTS APARTMENT, RECORDING STUDIO, AND DIY MUSIC VENUE. AI FOR SENSING CONTEXT; AI FOR THE AUTOMATION OF DESIGN; AI AS AN INTERFACE FOR LIVING.',
-    images: [{}, {}, {}]
-  },
-  {
-    id: 'spolia-part-i', num: '03', title: 'SPOLIA PART I', slug: 'spolia-part-i',
-    desc: 'A ROBOTIC FABRICATION PIPELINE COMBINING 3D SCANNING, MACHINE LEARNING, AND ADDITIVE MANUFACTURING TO AGGREGATE NON-STANDARD WASTE BRICKS FROM DEMOLITION INTO A STANDARDIZED FACADE PANEL USING A BIO-POLYMER MORTAR SYSTEM.',
-    images: [{}, {}]
-  },
-  {
-    id: 'endless', num: '04', title: 'ENDLESS', slug: 'endless',
-    desc: "FORMAL EXPERIMENTATION WITH BOOLEAN INTERSECTION. CUTS THROUGH PRELIMINARY MASSINGS SUGGEST AN ENDLESS FIELD CONDITION REMINISCENT OF ARCHIZOOM ASSOCIATI'S NO-STOP CITY, LENDING THE IDEA OF OPEN PLANS WITHIN AN EVER-EXPANDING VOLUME OF RELENTLESS ARTICULATION.",
-    images: [{}, {}]
-  },
-  {
-    id: 'st-sebastian', num: '05', title: 'ST.SEBASTIAN', slug: 'st-sebastian',
-    desc: 'ROBOTIC PEN PLOT ON CLEAR ACRYLIC. A CUSTOM IMAGE-TO-TOOLPATH GRASSHOPPER SCRIPT ENABLES COLOR CHANNEL SORTING INTO VARIABLE HATCH DENSITY AND ORIENTATION. CUSTOM MOVEMENT SPEED, LIFT HEIGHT, AND TOOL DEPTH ARE SET WITHIN THE PROGRAM.',
-    images: [{}, {}]
-  },
-  {
-    id: 'caryatid', num: '06', title: 'CARYATID', slug: 'caryatid',
-    desc: 'CUSTOM AI PIPELINES GENERATED HUMANOID CARYATID FORMS USING PIFUHD. RAPID ROBOT TOOLPATHS FOR THE 6-AXIS ABB IRB 6700 WERE GENERATED IN GRASSHOPPER. A RGB LIDAR SENSOR FED THROUGH A REAL-TIME AI PIPELINE — A FEEDBACK LOOP BETWEEN A PHYSICAL INPUT AND A CORRESPONDING STABLE DIFFUSION IMAGE.',
-    images: [{}, {}]
-  },
-  {
-    id: 'robotic-clt', num: '07', title: 'ROBOTIC CLT', slug: 'robotic-clt',
-    desc: 'ONGOING RESEARCH INTO AUTOMATION OF ROBOTIC ASSEMBLY OF STRUCTURALLY OPTIMIZED CROSS-LAMINATED TIMBER PANELS USING TIMBER OFFCUTS. SIMULATED STRUCTURAL LOADS GENERATE INDIVIDUAL PANEL VOXEL FIELDS. A ROBOT-MOUNTED SCHMALZ VACUUM AREA GRIPPER LIFTS, POSITIONS, AND SETS THE PLANKS IN PLACE.',
-    images: [{}, {}, {}]
-  },
-  {
-    id: 'basilica', num: '08', title: 'BASILICA', slug: 'basilica',
-    desc: "INCREMENTAL FORMING PROTOTYPE, SPRING 2026. MODIFIED CEILING PLAN OF RAPHAEL'S (((UNBUILT))) PLAN OF ST. PETER'S BASILICA. 1MM ALUMINUM SHEET, MDF FORMWORK, 530 × 835 × 40 MM.",
-    images: [{}, {}]
-  },
-];
-
-// ── DATA BLOCK FIELDS ─────────────────────────────────────────────────────────
 const DATA_FIELDS = [
   { id: 'date',    label: 'DATE',        fn: () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase() },
   { id: 'time',    label: 'TIME',        fn: () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) },
@@ -163,7 +107,9 @@ let STATE = 'home';
 let transitioning = false;
 let currentProject = null;
 let activeReturnWrapper = null;
-let containerW = 320; // updated on init and resize
+let containerW = 320;
+// Projects loaded dynamically from index.json + manifests
+let PROJECTS = [];
 
 // ── UTILITIES ─────────────────────────────────────────────────────────────────
 function g(id) { return document.getElementById(id); }
@@ -208,45 +154,117 @@ function makeGrainFilter(id, freq, disp, oct, seed) {
   return f;
 }
 
+// ── DYNAMIC PROJECT LOADING ───────────────────────────────────────────────────
+// Fetch projects/index.json → fetch each manifest + description → build PROJECTS
+// Projects render progressively as each one resolves.
+
+async function loadProjects() {
+  let folders;
+  try {
+    const r = await fetch('projects/index.json');
+    folders = await r.json();
+  } catch(e) {
+    console.error('Could not load projects/index.json', e);
+    return;
+  }
+
+  // Kick off all fetches in parallel, render each as it resolves
+  const promises = folders.map((folder, idx) => loadOneProject(folder, idx));
+  await Promise.allSettled(promises);
+}
+
+async function loadOneProject(folder, idx) {
+  // folder format: "01-spolia"
+  const parts = folder.match(/^(\d+)-(.+)$/);
+  if (!parts) return;
+  const num = parts[1];
+  const slug = parts[2];
+  const base = `projects/${folder}`;
+
+  let manifest, desc;
+  try {
+    const [mRes, dRes] = await Promise.all([
+      fetch(`${base}/manifest.json`),
+      fetch(`${base}/description.txt`)
+    ]);
+    manifest = await mRes.json();
+    desc = await dRes.text();
+  } catch(e) {
+    console.error(`Failed to load project ${folder}`, e);
+    return;
+  }
+
+  const proj = {
+    num,
+    slug,
+    folder,
+    title: manifest.title || slug.toUpperCase(),
+    desc: desc.trim(),
+    // Image sequence: interleave regular images and carousel slot
+    // carousel_folder name tells us its position in the sequence
+    images: manifest.images || [],
+    carousel_folder: manifest.carousel_folder || null,
+    carousel_slides: manifest.carousel_slides || 0,
+  };
+
+  // Build the full ordered image sequence
+  // All items (regular images + carousel folder) sorted by their numeric name
+  proj.sequence = buildSequence(proj);
+
+  PROJECTS[idx] = proj;
+
+  // Render this project's grid cell if work page is currently shown
+  if (STATE === 'work') renderWorkCell(proj, idx);
+}
+
+function buildSequence(proj) {
+  // sequence items: {type:'image', filename} or {type:'carousel', folder, slides}
+  const items = [];
+  (proj.images || []).forEach(f => items.push({ type: 'image', filename: f }));
+  if (proj.carousel_folder) {
+    items.push({ type: 'carousel', folder: proj.carousel_folder, slides: proj.carousel_slides });
+  }
+  // Sort by numeric prefix of filename/folder name
+  items.sort((a, b) => {
+    const na = parseInt((a.filename || a.folder).replace(/\D/g, ''), 10);
+    const nb = parseInt((b.filename || b.folder).replace(/\D/g, ''), 10);
+    return na - nb;
+  });
+  return items;
+}
+
 // ── IMAGE PATH HELPERS ────────────────────────────────────────────────────────
-function imgPath(proj, index, carouselSlide) {
-  const base = `projects/${proj.num}-${proj.slug}`;
-  if (carouselSlide !== undefined)
-    return `${base}/images/${String(index).padStart(2,'0')}/${String(carouselSlide).padStart(2,'0')}.jpg`;
-  return `${base}/images/${String(index).padStart(2,'0')}.jpg`;
+function imgSrc(proj, item, slideNum) {
+  const base = `projects/${proj.folder}/images`;
+  if (item.type === 'carousel') {
+    return `${base}/${item.folder}/${String(slideNum).padStart(2,'0')}.jpg`;
+  }
+  return `${base}/${item.filename}`;
 }
 
-function imgFullPath(proj, index, carouselSlide) {
-  const base = `projects/${proj.num}-${proj.slug}`;
-  if (carouselSlide !== undefined)
-    return `${base}/images-full/${String(index).padStart(2,'0')}/${String(carouselSlide).padStart(2,'0')}.jpg`;
-  return `${base}/images-full/${String(index).padStart(2,'0')}.jpg`;
+function imgFullSrc(proj, item, slideNum) {
+  const base = `projects/${proj.folder}/images-full`;
+  if (item.type === 'carousel') {
+    return `${base}/${item.folder}/${String(slideNum).padStart(2,'0')}.jpg`;
+  }
+  return `${base}/${item.filename}`;
 }
 
-function thumbPath(proj) { return `projects/${proj.num}-${proj.slug}/thumb/01.jpg`; }
+function thumbSrc(proj) {
+  return `projects/${proj.folder}/thumb/01.jpg`;
+}
 
-// ── LIGHTBOX (desktop only) ───────────────────────────────────────────────────
+// ── LIGHTBOX ──────────────────────────────────────────────────────────────────
 let lightboxOpen = false;
 
 function openLightbox(fullSrc) {
   if (!isDesktop || lightboxOpen) return;
   lightboxOpen = true;
   let lb = g('lightbox');
-  if (!lb) {
-    lb = document.createElement('div');
-    lb.id = 'lightbox';
-    const img = document.createElement('img');
-    lb.appendChild(img);
-    document.body.appendChild(lb);
-    lb.addEventListener('click', closeLightbox);
-  }
   const img = lb.querySelector('img');
   img.src = fullSrc;
   lb.classList.add('lb-visible');
-  // Force reflow then activate for transition
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { lb.classList.add('lb-active'); });
-  });
+  requestAnimationFrame(() => requestAnimationFrame(() => lb.classList.add('lb-active')));
 }
 
 function closeLightbox() {
@@ -256,25 +274,19 @@ function closeLightbox() {
   setTimeout(() => {
     lb.classList.remove('lb-visible');
     lightboxOpen = false;
-    const img = lb.querySelector('img');
-    if (img) img.src = '';
+    lb.querySelector('img').src = '';
   }, 150);
 }
 
 function makeImgClickable(imgEl, fullSrc) {
   if (!isDesktop) return;
   imgEl.style.cursor = 'zoom-in';
-  imgEl.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openLightbox(fullSrc);
-  });
+  imgEl.addEventListener('click', e => { e.stopPropagation(); openLightbox(fullSrc); });
 }
 
-// ── DESKTOP FRAME SETUP ───────────────────────────────────────────────────────
+// ── DESKTOP FRAME ─────────────────────────────────────────────────────────────
 function applyDesktopMode() {
-  if (isDesktop) {
-    document.body.classList.add('framed');
-  }
+  if (isDesktop) document.body.classList.add('framed');
 }
 
 // ── NAME ──────────────────────────────────────────────────────────────────────
@@ -304,23 +316,18 @@ function renderNav(invertIdx, animate) {
   const { navsize: ns, navls: nls, navgap: ng, navsw: nsw,
     numoffset: numoff, dashoffset: dashoff, dashw: dw, dashgap: dgap, dashsw: dsw } = C;
   const labels = ['WORK', 'ABOUT', 'CV', 'CONTACT'];
-
   navSVG.setAttribute('viewBox', `0 0 ${W} ${ng*3+ns+20}`);
   navSVG.setAttribute('width', W); navSVG.setAttribute('height', ng*3+ns+20);
   navSVG.style.left = '0px'; navSVG.style.top = navTop + 'px';
   navSVG.querySelectorAll('.nav-row').forEach(el => el.remove());
-
-  // Position trigger buttons — centered on text baseline
   [['work-btn',0],['about-btn',1],['cv-btn',2],['contact-btn',3]].forEach(([id,i]) => {
     const btn = g(id); if (!btn) return;
     btn.style.top = (navTop + i*ng - ns) + 'px';
     btn.style.height = (ns * 2) + 'px';
   });
-
   labels.forEach((label, i) => {
     const y = i * ng + ns, isInv = (invertIdx === i);
-    const grp = svgEl('g');
-    grp.setAttribute('class', 'nav-row');
+    const grp = svgEl('g'); grp.setAttribute('class', 'nav-row');
     if (!isInv) grp.setAttribute('filter', 'url(#gnav)');
     if (animate) grp.style.opacity = '0';
     const fc = isInv ? '#fff' : '#111';
@@ -408,6 +415,7 @@ function buildNavRowSVG(label, number, inv, onClickFn, seed) {
 }
 
 function buildReturnSVG(inv, onClickFn) { return buildNavRowSVG('RETURN', '00', inv, onClickFn, 33); }
+
 function buildDownloadRow() {
   const svg = buildNavRowSVG('DOWNLOAD CV', '00', false, null, 41);
   svg.addEventListener('click', () => window.open('assets/MICHAEL_BOLDT_CV.pdf', '_blank'));
@@ -479,16 +487,11 @@ function triggerReturnToWork() {
   });
 }
 
-// ── DATA BLOCK ────────────────────────────────────────────────────────────────
-// Rendered as SVG with grain filter, displacement, and stroke weight
-// matching the locked design values: dsize:7, dls:0.015, dlh:1.35, dsw:0.3,
-// leadersw:1, dlpad:1, drpad:1, dgap:8, bfreq:0.09, bdisp:1, boct:4, bseed:44
+// ── DATA BLOCK (SVG with grain) ───────────────────────────────────────────────
 function renderData() {
   const block = g('data-block'); if (!block) return;
-  // Clear previous SVG render but keep the grain background svg
   const existing = block.querySelector('svg.data-svg');
   if (existing) existing.remove();
-
   const vals = getLive();
   const W = containerW;
   const fs = C.dsize, dls = C.dls, dlh = C.dlh, dsw = C.dsw;
@@ -498,94 +501,63 @@ function renderData() {
   const lineH = fs * dlh;
   const colW = (W - dgap) / 2;
   const totalH = half * lineH + 2;
-
   const uid = uniqueId('gdata');
   const svg = svgEl('svg');
-  svg.setAttribute('width', W);
-  svg.setAttribute('height', totalH);
+  svg.setAttribute('width', W); svg.setAttribute('height', totalH);
   svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
   svg.setAttribute('overflow', 'visible');
   svg.style.cssText = 'display:block;position:absolute;bottom:0;left:0;';
   svg.classList.add('data-svg');
-
-  // Grain filter
   const defs = svgEl('defs');
   const filt = makeGrainFilter(uid, C.bfreq, C.bdisp, C.boct, C.bseed);
   filt.setAttribute('x', '-2%'); filt.setAttribute('y', '-5%');
   filt.setAttribute('width', '106%'); filt.setAttribute('height', '115%');
   defs.appendChild(filt); svg.appendChild(defs);
-
-  const grp = svgEl('g');
-  grp.setAttribute('filter', `url(#${uid})`);
-
-  // Measure text widths for leader lines
+  const grp = svgEl('g'); grp.setAttribute('filter', `url(#${uid})`);
   const mc = document.createElement('canvas');
   const mctx = mc.getContext('2d');
   mctx.font = fs + 'px Arial';
-
   [DATA_FIELDS.slice(0, half), DATA_FIELDS.slice(half)].forEach((colItems, ci) => {
     const colX = ci === 0 ? 0 : colW + dgap;
     const padL = ci === 0 ? dlpad : 0;
     const padR = ci === 1 ? drpad : 0;
     const innerW = colW - padL - padR;
-
     colItems.forEach((field, fi) => {
       const val = vals[field.id] || '—';
       const y = fi * lineH + fs;
-
-      // Key label
       const keyEl = svgEl('text');
-      keyEl.setAttribute('x', colX + padL);
-      keyEl.setAttribute('y', y);
+      keyEl.setAttribute('x', colX + padL); keyEl.setAttribute('y', y);
       keyEl.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
-      keyEl.setAttribute('font-size', fs);
-      keyEl.setAttribute('font-weight', '400');
-      keyEl.setAttribute('fill', '#111');
-      keyEl.setAttribute('stroke', '#111');
-      keyEl.setAttribute('stroke-width', dsw);
-      keyEl.setAttribute('letter-spacing', dls + 'em');
-      keyEl.textContent = field.label;
-      grp.appendChild(keyEl);
-
-      // Value (right-aligned)
+      keyEl.setAttribute('font-size', fs); keyEl.setAttribute('font-weight', '400');
+      keyEl.setAttribute('fill', '#111'); keyEl.setAttribute('stroke', '#111');
+      keyEl.setAttribute('stroke-width', dsw); keyEl.setAttribute('letter-spacing', dls + 'em');
+      keyEl.textContent = field.label; grp.appendChild(keyEl);
       const valEl = svgEl('text');
-      valEl.setAttribute('x', colX + colW - padR);
-      valEl.setAttribute('y', y);
+      valEl.setAttribute('x', colX + colW - padR); valEl.setAttribute('y', y);
       valEl.setAttribute('text-anchor', 'end');
       valEl.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
-      valEl.setAttribute('font-size', fs);
-      valEl.setAttribute('font-weight', '400');
-      valEl.setAttribute('fill', '#111');
-      valEl.setAttribute('stroke', '#111');
-      valEl.setAttribute('stroke-width', dsw);
-      valEl.setAttribute('letter-spacing', dls + 'em');
-      valEl.textContent = val;
-      grp.appendChild(valEl);
-
-      // Leader line between key and value
+      valEl.setAttribute('font-size', fs); valEl.setAttribute('font-weight', '400');
+      valEl.setAttribute('fill', '#111'); valEl.setAttribute('stroke', '#111');
+      valEl.setAttribute('stroke-width', dsw); valEl.setAttribute('letter-spacing', dls + 'em');
+      valEl.textContent = val; grp.appendChild(valEl);
       const keyW = mctx.measureText(field.label).width;
       const valW = mctx.measureText(val).width;
-      const leaderX1 = colX + padL + keyW + 2;
-      const leaderX2 = colX + colW - padR - valW - 2;
+      const lx1 = colX + padL + keyW + 2;
+      const lx2 = colX + colW - padR - valW - 2;
       const leaderY = y - fs * 0.35;
-      if (leaderX2 > leaderX1 + 4) {
+      if (lx2 > lx1 + 4) {
         const leader = svgEl('line');
-        leader.setAttribute('x1', leaderX1);
-        leader.setAttribute('y1', leaderY);
-        leader.setAttribute('x2', leaderX2);
-        leader.setAttribute('y2', leaderY);
-        leader.setAttribute('stroke', '#111');
-        leader.setAttribute('stroke-width', lsw);
+        leader.setAttribute('x1', lx1); leader.setAttribute('y1', leaderY);
+        leader.setAttribute('x2', lx2); leader.setAttribute('y2', leaderY);
+        leader.setAttribute('stroke', '#111'); leader.setAttribute('stroke-width', lsw);
         grp.appendChild(leader);
       }
     });
   });
-
-  svg.appendChild(grp);
-  block.appendChild(svg);
+  svg.appendChild(grp); block.appendChild(svg);
 }
 
-// ── ABOUT / CONTACT (line-fill) ───────────────────────────────────────────────
+// ── ABOUT / CONTACT ───────────────────────────────────────────────────────────
 function buildSubContent(textLineBlocks, container) {
   container.innerHTML = ''; if (container.parentElement) container.parentElement.scrollTop = 0;
   const W = containerW;
@@ -672,44 +644,68 @@ function buildWorkGrid() {
   container.style.cssText = `padding:${gt}px ${gp}px 0 ${gp}px;width:100%;overflow-x:hidden;box-sizing:border-box;`;
   const totalInner = W - gp * 2;
   const cellW = Math.floor((totalInner - cg) / 2);
+
+  // Create grid container
   const grid = document.createElement('div');
+  grid.id = 'work-grid';
   grid.style.cssText = `display:grid;grid-template-columns:${cellW}px ${cellW}px;column-gap:${cg}px;width:${totalInner}px;`;
-  const allItems = [];
-  PROJECTS.forEach(proj => {
-    const cell = document.createElement('div');
-    cell.style.cssText = `display:flex;flex-direction:column;cursor:pointer;overflow:hidden;margin-bottom:${rg}px;`;
-    const imgDiv = document.createElement('div');
-    imgDiv.style.cssText = 'width:100%;aspect-ratio:4/5;background:#111;overflow:hidden;position:relative;';
-    const img = document.createElement('img');
-    img.src = thumbPath(proj); img.alt = proj.title;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    imgDiv.appendChild(img);
-    const uid2 = uniqueId('gt');
-    const H = ts + 4;
-    const tsvg = svgEl('svg');
-    tsvg.setAttribute('width', cellW); tsvg.setAttribute('height', H);
-    tsvg.setAttribute('viewBox', `0 0 ${cellW} ${H}`);
-    tsvg.setAttribute('overflow', 'hidden'); tsvg.style.cssText = `display:block;margin-top:${tp}px;margin-bottom:${tbp}px;`;
-    const tdefs = svgEl('defs');
-    const tfilt = makeGrainFilter(uid2, 0.09, 0.8, 3, 17);
-    tdefs.appendChild(tfilt); tsvg.appendChild(tdefs);
-    const tgrp = svgEl('g'); tgrp.setAttribute('filter', `url(#${uid2})`);
-    const ttxt = svgEl('text');
-    ttxt.setAttribute('x', cellW/2); ttxt.setAttribute('y', ts); ttxt.setAttribute('text-anchor', 'middle');
-    ttxt.setAttribute('font-family', 'Arial, Helvetica, sans-serif'); ttxt.setAttribute('font-size', ts);
-    ttxt.setAttribute('font-weight', '700'); ttxt.setAttribute('fill', '#111'); ttxt.setAttribute('stroke', '#111');
-    ttxt.setAttribute('stroke-width', tsw); ttxt.setAttribute('letter-spacing', tls + 'em');
-    ttxt.textContent = proj.title;
-    tgrp.appendChild(ttxt); tsvg.appendChild(tgrp);
-    cell.style.opacity = '0';
-    cell.appendChild(imgDiv); cell.appendChild(tsvg);
-    cell.addEventListener('click', () => { if (!transitioning && STATE === 'work') triggerToProject(proj); });
-    grid.appendChild(cell); allItems.push(cell);
-  });
   container.appendChild(grid);
+
+  // Create placeholder cells for all projects (in order)
+  // Fill with actual content as projects load
+  const maxProjects = PROJECTS.length || 8;
+  for (let i = 0; i < maxProjects; i++) {
+    const cell = document.createElement('div');
+    cell.id = `work-cell-${i}`;
+    cell.style.cssText = `display:flex;flex-direction:column;cursor:pointer;overflow:hidden;margin-bottom:${rg}px;opacity:0;`;
+    grid.appendChild(cell);
+    // If project already loaded, render it
+    if (PROJECTS[i]) renderWorkCell(PROJECTS[i], i);
+  }
+
   const ret = placeReturnFlow(container, triggerReturnToHome);
-  allItems.push(ret);
-  allItems.forEach((el, i) => setTimeout(() => { el.style.opacity = '1'; }, i * C.t_line));
+  setTimeout(() => { ret.style.opacity = '1'; }, 200);
+}
+
+function renderWorkCell(proj, idx) {
+  const cell = document.getElementById(`work-cell-${idx}`);
+  if (!cell) return;
+  cell.innerHTML = '';
+  const W = containerW;
+  const { col_gap: cg, grid_pad: gp, title_size: ts, title_ls: tls,
+    title_sw: tsw, title_pad: tp, title_bpad: tbp } = C;
+  const totalInner = W - gp * 2;
+  const cellW = Math.floor((totalInner - cg) / 2);
+
+  const imgDiv = document.createElement('div');
+  imgDiv.style.cssText = 'width:100%;aspect-ratio:4/5;background:#111;overflow:hidden;';
+  const img = document.createElement('img');
+  img.src = thumbSrc(proj); img.alt = proj.title;
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+  imgDiv.appendChild(img);
+
+  const uid2 = uniqueId('gt');
+  const H = ts + 4;
+  const tsvg = svgEl('svg');
+  tsvg.setAttribute('width', cellW); tsvg.setAttribute('height', H);
+  tsvg.setAttribute('viewBox', `0 0 ${cellW} ${H}`);
+  tsvg.setAttribute('overflow', 'hidden');
+  tsvg.style.cssText = `display:block;margin-top:${tp}px;margin-bottom:${tbp}px;`;
+  const tdefs = svgEl('defs');
+  const tfilt = makeGrainFilter(uid2, 0.09, 0.8, 3, 17);
+  tdefs.appendChild(tfilt); tsvg.appendChild(tdefs);
+  const tgrp = svgEl('g'); tgrp.setAttribute('filter', `url(#${uid2})`);
+  const ttxt = svgEl('text');
+  ttxt.setAttribute('x', cellW/2); ttxt.setAttribute('y', ts); ttxt.setAttribute('text-anchor', 'middle');
+  ttxt.setAttribute('font-family', 'Arial, Helvetica, sans-serif'); ttxt.setAttribute('font-size', ts);
+  ttxt.setAttribute('font-weight', '700'); ttxt.setAttribute('fill', '#111'); ttxt.setAttribute('stroke', '#111');
+  ttxt.setAttribute('stroke-width', tsw); ttxt.setAttribute('letter-spacing', tls + 'em');
+  ttxt.textContent = proj.title;
+  tgrp.appendChild(ttxt); tsvg.appendChild(tgrp);
+
+  cell.appendChild(imgDiv); cell.appendChild(tsvg);
+  cell.addEventListener('click', () => { if (!transitioning && STATE === 'work') triggerToProject(proj); });
+  cell.style.opacity = '1';
 }
 
 // ── CAROUSEL ──────────────────────────────────────────────────────────────────
@@ -739,38 +735,70 @@ function buildCarouselCounter(total, idx) {
   svg.appendChild(grp); return svg;
 }
 
-function buildCarousel(imgData, proj, imgIndex, container) {
-  const total = imgData.slides, ar = imgData.ar;
+function buildCarousel(item, proj, container) {
+  const total = item.slides;
   const { img_pad: ip, img_gap: ig } = C;
   const W = containerW;
-  const imgW = W - ip * 2, imgH = Math.round(imgW / ar);
+  const imgW = W - ip * 2;
   let idx = 0;
+
+  const outerWrap = document.createElement('div');
+  outerWrap.style.cssText = `position:relative;width:${imgW}px;margin-left:${ip}px;margin-bottom:${ig}px;`;
+
   const wrap = document.createElement('div');
-  wrap.style.cssText = `position:relative;width:${imgW}px;height:${imgH}px;margin-left:${ip}px;overflow:hidden;touch-action:pan-y;`;
+  wrap.style.cssText = `position:relative;width:${imgW}px;overflow:hidden;touch-action:pan-y;`;
+
   const track = document.createElement('div');
-  track.style.cssText = `display:flex;height:${imgH}px;transition:transform 0.25s ease;will-change:transform;`;
+  track.style.cssText = `display:flex;transition:transform 0.25s ease;will-change:transform;`;
+
   for (let i = 0; i < total; i++) {
     const slide = document.createElement('div');
-    slide.style.cssText = `flex-shrink:0;width:${imgW}px;height:${imgH}px;background:#111;overflow:hidden;`;
+    slide.style.cssText = `flex-shrink:0;width:${imgW}px;background:#111;overflow:hidden;`;
     const img = document.createElement('img');
-    img.src = imgPath(proj, imgIndex, i+1); img.alt = `${proj.title} ${i+1}`;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    makeImgClickable(img, imgFullPath(proj, imgIndex, i+1));
+    img.src = imgSrc(proj, item, i+1); img.alt = `${proj.title} ${i+1}`;
+    img.style.cssText = 'width:100%;height:auto;display:block;';
+    makeImgClickable(img, imgFullSrc(proj, item, i+1));
     slide.appendChild(img); track.appendChild(slide);
   }
   wrap.appendChild(track);
-  const cntC = document.createElement('div'); cntC.style.marginBottom = ig + 'px';
-  container.appendChild(wrap); container.appendChild(cntC);
+
+  // Desktop invisible click zones — left third = prev, right third = next
+  if (isDesktop) {
+    const zoneStyle = `position:absolute;top:0;bottom:0;width:33%;z-index:5;cursor:pointer;`;
+    const prevZone = document.createElement('div');
+    prevZone.style.cssText = zoneStyle + 'left:0;';
+    prevZone.addEventListener('click', () => { if (idx > 0) goTo(idx - 1); });
+    const nextZone = document.createElement('div');
+    nextZone.style.cssText = zoneStyle + 'right:0;';
+    nextZone.addEventListener('click', () => { if (idx < total - 1) goTo(idx + 1); });
+    wrap.appendChild(prevZone);
+    wrap.appendChild(nextZone);
+  }
+
+  outerWrap.appendChild(wrap);
+  const cntC = document.createElement('div');
+  outerWrap.appendChild(cntC);
+  container.appendChild(outerWrap);
+
   function goTo(i) {
-    idx = i; track.style.transform = `translateX(-${i*imgW}px)`;
+    idx = i;
+    track.style.transform = `translateX(-${i*imgW}px)`;
     cntC.innerHTML = ''; cntC.appendChild(buildCarouselCounter(total, idx));
   }
   goTo(0);
+
+  // Touch/mouse swipe
   let sx = 0;
   wrap.addEventListener('mousedown', e => { sx = e.clientX; });
-  wrap.addEventListener('mouseup', e => { const dx = e.clientX - sx; if (Math.abs(dx) > 20) { if (dx < 0 && idx < total-1) goTo(idx+1); else if (dx > 0 && idx > 0) goTo(idx-1); } });
+  wrap.addEventListener('mouseup', e => {
+    const dx = e.clientX - sx;
+    if (Math.abs(dx) > 20) { if (dx < 0 && idx < total-1) goTo(idx+1); else if (dx > 0 && idx > 0) goTo(idx-1); }
+  });
   wrap.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
-  wrap.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 30) { if (dx < 0 && idx < total-1) goTo(idx+1); else if (dx > 0 && idx > 0) goTo(idx-1); } });
+  wrap.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 30) { if (dx < 0 && idx < total-1) goTo(idx+1); else if (dx > 0 && idx > 0) goTo(idx-1); }
+  });
 }
 
 // ── PROJECT PAGE ──────────────────────────────────────────────────────────────
@@ -794,20 +822,23 @@ function buildProjectPage(proj) {
   const W = containerW;
   const { img_pad: ip, img_gap: ig, ptitle_size: pts, ptitle_top: ptt, ptitle_bot: ptb,
     pdesc_size: pds, pdesc_ls: pdl, pdesc_lh: pdlh, pdesc_sw: pdsw, pdesc_pad: pdp, pdesc_top: pdt } = C;
-  let imgIndex = 0;
-  proj.images.forEach(imgData => {
-    imgIndex++;
-    if (imgData.carousel) { buildCarousel(imgData, proj, imgIndex, container); return; }
-    // Auto aspect ratio — image determines its own height naturally
-    const imgW = W - ip * 2;
-    const imgDiv = document.createElement('div');
-    imgDiv.style.cssText = `width:${imgW}px;background:#111;margin-left:${ip}px;margin-bottom:${ig}px;overflow:hidden;flex-shrink:0;`;
-    const img = document.createElement('img');
-    img.src = imgPath(proj, imgIndex); img.alt = proj.title;
-    img.style.cssText = 'width:100%;height:auto;display:block;';
-    makeImgClickable(img, imgFullPath(proj, imgIndex));
-    imgDiv.appendChild(img); container.appendChild(imgDiv);
+
+  // Render images from the sequence array
+  (proj.sequence || []).forEach(item => {
+    if (item.type === 'carousel') {
+      buildCarousel(item, proj, container);
+    } else {
+      const imgW = W - ip * 2;
+      const imgDiv = document.createElement('div');
+      imgDiv.style.cssText = `width:${imgW}px;background:#111;margin-left:${ip}px;margin-bottom:${ig}px;overflow:hidden;flex-shrink:0;`;
+      const img = document.createElement('img');
+      img.src = imgSrc(proj, item); img.alt = proj.title;
+      img.style.cssText = 'width:100%;height:auto;display:block;';
+      makeImgClickable(img, imgFullSrc(proj, item));
+      imgDiv.appendChild(img); container.appendChild(imgDiv);
+    }
   });
+
   // Project title
   const ptWrap = document.createElement('div');
   ptWrap.style.cssText = `padding:${ptt}px ${pdp}px ${ptb}px ${pdp}px;overflow:hidden;`;
@@ -827,6 +858,7 @@ function buildProjectPage(proj) {
   ptxt.setAttribute('fill', '#111'); ptxt.setAttribute('stroke', '#111'); ptxt.setAttribute('stroke-width', '0.4');
   ptxt.setAttribute('filter', `url(#${uid3})`); ptxt.textContent = proj.title;
   ptSVG.appendChild(ptxt); ptWrap.appendChild(ptSVG); container.appendChild(ptWrap);
+
   // Description
   const descDiv = document.createElement('div');
   descDiv.style.cssText = `padding:${pdt}px ${pdp}px 0 ${pdp}px;overflow:hidden;`;
@@ -860,72 +892,48 @@ function buildProjectPage(proj) {
 }
 
 // ── CV PAGE ───────────────────────────────────────────────────────────────────
-// Renders CV_LINES flat — all symbols literal, no indentation.
-// # and > lines: stroke weight bsw (0.7 heavy)
-// >> lines: stroke weight 0.3 (light)
-// After each # line: pgap spacing. cv_sgap before each # line (except first).
 function buildCVPage() {
   const container = g('cv-inner'); if (!container) return;
   container.innerHTML = ''; if (container.parentElement) container.parentElement.scrollTop = 0;
   activeReturnWrapper = null;
-
   const W = containerW;
   const { bsize: fs, bls, blh, bsw, bfreq, bdisp, boct, bseed, pgap, cv_pad, cv_tpad, cv_sgap } = C;
-  const SW_HEAVY = 0.8;
-  const SW_LIGHT = 0.4;
+  const SW_HEAVY = 0.8, SW_LIGHT = 0.4;
   const lineH = fs * blh;
-  const contentW = W - cv_pad * 2 - 2; // 2px right safety margin
-
+  const contentW = W - cv_pad * 2 - 2;
   const mc = document.createElement('canvas'), mctx = mc.getContext('2d');
   mctx.font = fs + 'px Arial';
-
-  // Build flat render list.
-  // Strategy for > lines with :::
-  //   - Wrap ONLY the left (heavy) portion to get wrapped lines
-  //   - Append :: date as a light segment on the LAST wrapped line only
-  //   - This prevents the date from appearing on every wrapped line
-  // # lines: strip '# ' prefix, display header text only, heavy weight
-  // >> lines: light weight, wrap normally
   const renderList = [];
   let y = cv_tpad;
-
   CV_LINES.forEach((line, li) => {
     const isSection = line.text.startsWith('#');
     const isDouble  = line.text.startsWith('>>');
     const isSingle  = line.text.startsWith('>') && !isDouble;
-
     if (isSection && li > 0) y += cv_sgap;
-
     if (isSingle && line.text.includes('::')) {
-      // Split at :: — wrap left (job) portion, then date on its own line below
       const sepIdx = line.text.indexOf('::');
       const leftText = line.text.slice(0, sepIdx).trimEnd();
       const dateText = ':: ' + line.text.slice(sepIdx + 2).trimStart();
-      // Wrap and render the job/institution text at heavy weight
       const wrappedLeft = wrapText(mctx, leftText, contentW);
-      wrappedLeft.forEach(wline => {
+      wrappedLeft.forEach((wline, wi) => {
         y += lineH;
-        renderList.push({ segments: [{ text: wline, sw: SW_HEAVY }], y });
+        const isLast = wi === wrappedLeft.length - 1;
+        if (isLast) {
+          renderList.push({ segments: [{ text: wline, sw: SW_HEAVY }, { text: ' ' + dateText, sw: SW_LIGHT }], y });
+        } else {
+          renderList.push({ segments: [{ text: wline, sw: SW_HEAVY }], y });
+        }
       });
-      // Date on its own line below, flush left, light weight
-      y += lineH;
-      renderList.push({ segments: [{ text: dateText, sw: SW_LIGHT }], y });
     } else if (isSection) {
-      const displayText = line.text.slice(2); // strip '# '
       y += lineH;
-      renderList.push({ segments: [{ text: displayText, sw: SW_HEAVY }], y });
+      renderList.push({ segments: [{ text: line.text.slice(2), sw: SW_HEAVY }], y });
     } else {
       const sw = isDouble ? SW_LIGHT : SW_HEAVY;
       const wrapped = wrapText(mctx, line.text, contentW);
-      wrapped.forEach(wline => {
-        y += lineH;
-        renderList.push({ segments: [{ text: wline, sw }], y });
-      });
+      wrapped.forEach(wline => { y += lineH; renderList.push({ segments: [{ text: wline, sw }], y }); });
     }
-
     if (isSection) y += pgap;
   });
-
   const totalH = y + pgap + 10;
   const uid = uniqueId('gcv');
   const svg = svgEl('svg');
@@ -933,71 +941,49 @@ function buildCVPage() {
   svg.setAttribute('viewBox', `0 0 ${contentW} ${totalH}`);
   svg.setAttribute('overflow', 'visible');
   svg.style.cssText = `display:block;margin-left:${cv_pad}px;`;
-
   const defs = svgEl('defs');
   const filt = makeGrainFilter(uid, bfreq, bdisp, boct, bseed);
   filt.setAttribute('x', '-2%'); filt.setAttribute('y', '-5%');
   filt.setAttribute('width', '106%'); filt.setAttribute('height', '115%');
   defs.appendChild(filt); svg.appendChild(defs);
 
-  // Helper: create a styled SVG text element
   function mkCVText(x, y, text, sw) {
     const el = svgEl('text');
     el.setAttribute('x', x); el.setAttribute('y', y);
     el.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
     el.setAttribute('font-size', fs); el.setAttribute('font-weight', '400');
     el.setAttribute('fill', '#111'); el.setAttribute('stroke', '#111');
-    el.setAttribute('stroke-width', sw);
-    el.setAttribute('letter-spacing', bls + 'em');
+    el.setAttribute('stroke-width', sw); el.setAttribute('letter-spacing', bls + 'em');
     el.setAttribute('filter', `url(#${uid})`);
-    el.style.opacity = '0';
-    el.textContent = text;
-    return el;
+    el.style.opacity = '0'; el.textContent = text; return el;
   }
 
   const groups = [];
   renderList.forEach(r => {
     const lineEls = [];
     if (r.segments.length === 1) {
-      // Single segment — simple text element at x=0
       const el = mkCVText(0, r.y, r.segments[0].text, r.segments[0].sw);
-      svg.appendChild(el);
-      lineEls.push(el);
+      svg.appendChild(el); lineEls.push(el);
     } else {
-      // Two segments: measure left segment width, place right segment after it
-      const leftText = r.segments[0].text;
-      const dateText = r.segments[1].text.trim(); // ':: YEAR'
-      // Measure how wide the date is so we know where left text must end
-      const dateW = mctx.measureText(dateText).width + 4;
-      const maxLeftW = contentW - dateW;
-      // Left text: heavy, left-anchored, capped so date fits on same line
-      const leftEl = mkCVText(0, r.y, leftText, r.segments[0].sw);
-      svg.appendChild(leftEl);
-      lineEls.push(leftEl);
-      // Date: light, right-anchored to contentW edge — always fits
+      const leftEl = mkCVText(0, r.y, r.segments[0].text, r.segments[0].sw);
+      svg.appendChild(leftEl); lineEls.push(leftEl);
+      const dateText = r.segments[1].text.trim();
       const rightEl = mkCVText(contentW, r.y, dateText, r.segments[1].sw);
       rightEl.setAttribute('text-anchor', 'end');
-      svg.appendChild(rightEl);
-      lineEls.push(rightEl);
+      svg.appendChild(rightEl); lineEls.push(rightEl);
     }
     groups.push(lineEls);
   });
-
   container.appendChild(svg);
-
   const dlWrap = document.createElement('div');
   dlWrap.style.cssText = `margin-top:${C.ret_margin}px;opacity:0;`;
   dlWrap.appendChild(buildDownloadRow());
   container.appendChild(dlWrap);
-
   const retWrap = placeReturnFlow(container, triggerReturnToHome);
-
   groups.forEach((grp, gi) => {
     setTimeout(() => {
       grp.forEach(el => el.style.opacity = '1');
-      if (gi === groups.length - 1) {
-        setTimeout(() => { dlWrap.style.opacity = '1'; retWrap.style.opacity = '1'; }, 80);
-      }
+      if (gi === groups.length - 1) setTimeout(() => { dlWrap.style.opacity = '1'; retWrap.style.opacity = '1'; }, 80);
     }, gi * C.t_line);
   });
 }
@@ -1015,61 +1001,49 @@ function triggerToWork() {
       fl.style.opacity = '0'; setTimeout(() => fl.style.display = 'none', 80);
       const hp = g('home-page'); if (hp) hp.style.display = 'none';
       const wp = g('work-page'); if (wp) { wp.style.display = 'block'; wp.scrollTop = 0; }
-      STATE = 'work'; transitioning = false; buildWorkGrid();
+      STATE = 'work'; transitioning = false;
+      buildWorkGrid();
+      loadProjects();
     }, C.t_blank);
   }, C.t_invert);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function init() {
-  // Apply desktop mode immediately — before any layout
   applyDesktopMode();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    containerW = getContainerW();
+    renderName(); renderData(); renderNav(-1, false);
 
-  // Wait for layout to settle before measuring and rendering
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      containerW = getContainerW();
-      renderName();
-      renderData();
-      renderNav(-1, false);
+    const wb = g('work-btn');    if (wb) wb.addEventListener('click', triggerToWork);
+    const ab = g('about-btn');   if (ab) ab.addEventListener('click', () => triggerToSubPage(1,'about-page',null,triggerReturnToHome,ABOUT_PARAS));
+    const cb = g('cv-btn');      if (cb) cb.addEventListener('click', () => triggerToSubPage(2,'cv-page',buildCVPage,triggerReturnToHome,null));
+    const ctb = g('contact-btn'); if (ctb) ctb.addEventListener('click', () => triggerToSubPage(3,'contact-page',null,triggerReturnToHome,CONTACT_LINES));
 
-      // Nav buttons
-      const wb = g('work-btn');    if (wb) wb.addEventListener('click', triggerToWork);
-      const ab = g('about-btn');   if (ab) ab.addEventListener('click', () => triggerToSubPage(1,'about-page',null,triggerReturnToHome,ABOUT_PARAS));
-      const cb = g('cv-btn');      if (cb) cb.addEventListener('click', () => triggerToSubPage(2,'cv-page',buildCVPage,triggerReturnToHome,null));
-      const ctb = g('contact-btn'); if (ctb) ctb.addEventListener('click', () => triggerToSubPage(3,'contact-page',null,triggerReturnToHome,CONTACT_LINES));
-
-      // Name → home
-      const na = g('name-area');
-      if (na) na.addEventListener('click', () => {
-        if (STATE !== 'home' && !transitioning) {
-          transitioning = true;
-          doInvertFlashGo(inv => invertActiveReturn(inv, null), () => showHome(true));
-        }
-      });
-
-      // Escape closes lightbox
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
-
-      // Show home page
-      const hp = g('home-page'); if (hp) hp.style.display = 'block';
-
-      // Clock
-      setInterval(() => {
-        const now = new Date();
-        const ts = g('status-time');
-        if (ts) ts.textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        if (STATE === 'home') renderData();
-      }, 1000);
-
-      // Resize — re-measure container width
-      window.addEventListener('resize', () => {
-        containerW = getContainerW();
-        renderNav(-1, false);
-        if (STATE === 'home') renderData();
-      });
+    const na = g('name-area');
+    if (na) na.addEventListener('click', () => {
+      if (STATE !== 'home' && !transitioning) {
+        transitioning = true;
+        doInvertFlashGo(inv => invertActiveReturn(inv, null), () => showHome(true));
+      }
     });
-  });
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    const hp = g('home-page'); if (hp) hp.style.display = 'block';
+
+    setInterval(() => {
+      const now = new Date();
+      const ts = g('status-time');
+      if (ts) ts.textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      if (STATE === 'home') renderData();
+    }, 1000);
+
+    window.addEventListener('resize', () => {
+      containerW = getContainerW();
+      renderNav(-1, false);
+      if (STATE === 'home') renderData();
+    });
+  }));
 }
 
 document.addEventListener('DOMContentLoaded', init);

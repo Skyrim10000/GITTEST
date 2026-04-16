@@ -41,12 +41,13 @@ body.framed {
 
 body.framed #phone-wrap {
   width: 340px;
-  height: 580px;
+  height: 584px;
   /* Offset content window to align with frame hole center.
-     Hole center is 2px right and 15px up from canvas center. */
+     +4px height at top (bottom stays fixed): top -19px was -15px.
+     +1px right shift: left 3px was 2px. */
   position: relative;
-  left: 2px;
-  top: -15px;
+  left: 3px;
+  top: -19px;
   z-index: 2;
 }
 
