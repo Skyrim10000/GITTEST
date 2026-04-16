@@ -94,41 +94,49 @@ const CV_LINES = [
 ];
 
 const PROJECTS = [
+  // To add a project: add an entry here and create the folder.
+  // images: array of {} for auto-aspect single images, or {carousel:true, slides:N} for carousel.
+  // num must match the folder prefix exactly (e.g. num:'01' -> projects/01-spolia/)
   {
     id: 'spolia', num: '01', title: 'SPOLIA', slug: 'spolia',
     desc: 'A THESIS PROJECT EXPLORING COOPERATIVE MULTISCALAR SPOLIATION AS AN ALTERNATIVE SYSTEM OF ARCHITECTURE AND SOCIAL/ECONOMIC ORGANIZATION. CONSTRUCTED FROM THE STEEL OF DECOMMISSIONED INDUSTRIAL PLANTS. AWARDED THE FRANK GEHRY PRIZE FOR BEST GRADUATE THESIS AT SCI-ARC.',
-    images: [{ ar: 4/5 }, { ar: 16/9, carousel: true, slides: 4 }, { ar: 1/1 }]
+    images: [{ carousel: true, slides: 4 }, {}, {}]
   },
   {
-    id: 'caryatid', num: '02', title: 'CARYATID', slug: 'caryatid',
-    desc: 'CUSTOM AI PIPELINES GENERATED HUMANOID CARYATID FORMS USING PIFUHD. RAPID ROBOT TOOLPATHS FOR THE 6-AXIS ABB IRB 6700 WERE GENERATED IN GRASSHOPPER. A RGB LIDAR SENSOR FED THROUGH A REAL-TIME AI PIPELINE — A FEEDBACK LOOP BETWEEN A PHYSICAL INPUT AND A CORRESPONDING STABLE DIFFUSION IMAGE.',
-    images: [{ ar: 4/5 }, { ar: 4/3 }]
-  },
-  {
-    id: 'robotic-clt', num: '03', title: 'ROBOTIC CLT', slug: 'robotic-clt',
-    desc: 'ONGOING RESEARCH INTO AUTOMATION OF ROBOTIC ASSEMBLY OF STRUCTURALLY OPTIMIZED CROSS-LAMINATED TIMBER PANELS USING TIMBER OFFCUTS. SIMULATED STRUCTURAL LOADS GENERATE INDIVIDUAL PANEL VOXEL FIELDS. A ROBOT-MOUNTED SCHMALZ VACUUM AREA GRIPPER LIFTS, POSITIONS, AND SETS THE PLANKS IN PLACE.',
-    images: [{ ar: 4/5 }, { ar: 3/2 }]
-  },
-  {
-    id: 'st-sebastian', num: '04', title: 'ST.SEBASTIAN', slug: 'st-sebastian',
-    desc: 'ROBOTIC PEN PLOT ON CLEAR ACRYLIC. A CUSTOM IMAGE-TO-TOOLPATH GRASSHOPPER SCRIPT ENABLES COLOR CHANNEL SORTING INTO VARIABLE HATCH DENSITY AND ORIENTATION. CUSTOM MOVEMENT SPEED, LIFT HEIGHT, AND TOOL DEPTH ARE SET WITHIN THE PROGRAM.',
-    images: [{ ar: 3/2 }, { ar: 4/5 }]
-  },
-  {
-    id: 'spolia-part-i', num: '05', title: 'SPOLIA PART I', slug: 'spolia-part-i',
-    desc: 'A ROBOTIC FABRICATION PIPELINE COMBINING 3D SCANNING, MACHINE LEARNING, AND ADDITIVE MANUFACTURING TO AGGREGATE NON-STANDARD WASTE BRICKS FROM DEMOLITION INTO A STANDARDIZED FACADE PANEL USING A BIO-POLYMER MORTAR SYSTEM.',
-    images: [{ ar: 4/5 }, { ar: 1/1 }]
-  },
-  {
-    id: 'decibel', num: '06', title: 'DECIBEL', slug: 'decibel',
+    id: 'decibel', num: '02', title: 'DECIBEL', slug: 'decibel',
     desc: 'A 20,000 SQ METER MIXED-USE DEVELOPMENT IN DTLA — A MAXIMALLY ARTICULATED MEGASTRUCTURE FOR MUSICIANS. EQUAL PARTS APARTMENT, RECORDING STUDIO, AND DIY MUSIC VENUE. AI FOR SENSING CONTEXT; AI FOR THE AUTOMATION OF DESIGN; AI AS AN INTERFACE FOR LIVING.',
-    images: [{ ar: 4/5 }, { ar: 16/9 }, { ar: 4/3 }]
+    images: [{}, {}, {}]
   },
   {
-    id: 'endless', num: '07', title: 'ENDLESS', slug: 'endless',
+    id: 'spolia-part-i', num: '03', title: 'SPOLIA PART I', slug: 'spolia-part-i',
+    desc: 'A ROBOTIC FABRICATION PIPELINE COMBINING 3D SCANNING, MACHINE LEARNING, AND ADDITIVE MANUFACTURING TO AGGREGATE NON-STANDARD WASTE BRICKS FROM DEMOLITION INTO A STANDARDIZED FACADE PANEL USING A BIO-POLYMER MORTAR SYSTEM.',
+    images: [{}, {}]
+  },
+  {
+    id: 'endless', num: '04', title: 'ENDLESS', slug: 'endless',
     desc: "FORMAL EXPERIMENTATION WITH BOOLEAN INTERSECTION. CUTS THROUGH PRELIMINARY MASSINGS SUGGEST AN ENDLESS FIELD CONDITION REMINISCENT OF ARCHIZOOM ASSOCIATI'S NO-STOP CITY, LENDING THE IDEA OF OPEN PLANS WITHIN AN EVER-EXPANDING VOLUME OF RELENTLESS ARTICULATION.",
-    images: [{ ar: 3/2 }, { ar: 4/5 }]
-  }
+    images: [{}, {}]
+  },
+  {
+    id: 'st-sebastian', num: '05', title: 'ST.SEBASTIAN', slug: 'st-sebastian',
+    desc: 'ROBOTIC PEN PLOT ON CLEAR ACRYLIC. A CUSTOM IMAGE-TO-TOOLPATH GRASSHOPPER SCRIPT ENABLES COLOR CHANNEL SORTING INTO VARIABLE HATCH DENSITY AND ORIENTATION. CUSTOM MOVEMENT SPEED, LIFT HEIGHT, AND TOOL DEPTH ARE SET WITHIN THE PROGRAM.',
+    images: [{}, {}]
+  },
+  {
+    id: 'caryatid', num: '06', title: 'CARYATID', slug: 'caryatid',
+    desc: 'CUSTOM AI PIPELINES GENERATED HUMANOID CARYATID FORMS USING PIFUHD. RAPID ROBOT TOOLPATHS FOR THE 6-AXIS ABB IRB 6700 WERE GENERATED IN GRASSHOPPER. A RGB LIDAR SENSOR FED THROUGH A REAL-TIME AI PIPELINE — A FEEDBACK LOOP BETWEEN A PHYSICAL INPUT AND A CORRESPONDING STABLE DIFFUSION IMAGE.',
+    images: [{}, {}]
+  },
+  {
+    id: 'robotic-clt', num: '07', title: 'ROBOTIC CLT', slug: 'robotic-clt',
+    desc: 'ONGOING RESEARCH INTO AUTOMATION OF ROBOTIC ASSEMBLY OF STRUCTURALLY OPTIMIZED CROSS-LAMINATED TIMBER PANELS USING TIMBER OFFCUTS. SIMULATED STRUCTURAL LOADS GENERATE INDIVIDUAL PANEL VOXEL FIELDS. A ROBOT-MOUNTED SCHMALZ VACUUM AREA GRIPPER LIFTS, POSITIONS, AND SETS THE PLANKS IN PLACE.',
+    images: [{}, {}, {}]
+  },
+  {
+    id: 'basilica', num: '08', title: 'BASILICA', slug: 'basilica',
+    desc: "INCREMENTAL FORMING PROTOTYPE, SPRING 2026. MODIFIED CEILING PLAN OF RAPHAEL'S (((UNBUILT))) PLAN OF ST. PETER'S BASILICA. 1MM ALUMINUM SHEET, MDF FORMWORK, 530 × 835 × 40 MM.",
+    images: [{}, {}]
+  },
 ];
 
 // ── DATA BLOCK FIELDS ─────────────────────────────────────────────────────────
@@ -790,12 +798,13 @@ function buildProjectPage(proj) {
   proj.images.forEach(imgData => {
     imgIndex++;
     if (imgData.carousel) { buildCarousel(imgData, proj, imgIndex, container); return; }
-    const ar = imgData.ar, imgW = W - ip * 2, imgH = Math.round(imgW / ar);
+    // Auto aspect ratio — image determines its own height naturally
+    const imgW = W - ip * 2;
     const imgDiv = document.createElement('div');
-    imgDiv.style.cssText = `width:${imgW}px;height:${imgH}px;background:#111;margin-left:${ip}px;margin-bottom:${ig}px;overflow:hidden;flex-shrink:0;`;
+    imgDiv.style.cssText = `width:${imgW}px;background:#111;margin-left:${ip}px;margin-bottom:${ig}px;overflow:hidden;flex-shrink:0;`;
     const img = document.createElement('img');
     img.src = imgPath(proj, imgIndex); img.alt = proj.title;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    img.style.cssText = 'width:100%;height:auto;display:block;';
     makeImgClickable(img, imgFullPath(proj, imgIndex));
     imgDiv.appendChild(img); container.appendChild(imgDiv);
   });
