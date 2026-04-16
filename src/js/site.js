@@ -257,10 +257,17 @@ function thumbSrc(proj) {
 // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
 let lightboxOpen = false;
 
+function initLightbox() {
+  const lb = g('lightbox');
+  if (!lb) return;
+  // Clicking anywhere on the lightbox (including the image) closes it
+  lb.addEventListener('click', closeLightbox);
+}
+
 function openLightbox(fullSrc) {
   if (!isDesktop || lightboxOpen) return;
   lightboxOpen = true;
-  let lb = g('lightbox');
+  const lb = g('lightbox');
   const img = lb.querySelector('img');
   img.src = fullSrc;
   lb.classList.add('lb-visible');
@@ -281,7 +288,12 @@ function closeLightbox() {
 function makeImgClickable(imgEl, fullSrc) {
   if (!isDesktop) return;
   imgEl.style.cursor = 'zoom-in';
-  imgEl.addEventListener('click', e => { e.stopPropagation(); openLightbox(fullSrc); });
+  // No stopPropagation — click bubbles up to lightbox div and closes it too,
+  // but since openLightbox guards against opening when already open, this is fine.
+  imgEl.addEventListener('click', () => {
+    if (lightboxOpen) closeLightbox();
+    else openLightbox(fullSrc);
+  });
 }
 
 // ── DESKTOP FRAME ─────────────────────────────────────────────────────────────
@@ -1029,6 +1041,7 @@ function init() {
     });
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    initLightbox();
     const hp = g('home-page'); if (hp) hp.style.display = 'block';
 
     setInterval(() => {
