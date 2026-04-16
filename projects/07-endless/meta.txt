@@ -1,4 +1,0 @@
-title: ENDLESS
-year: 2023
-order: 7
-slug: endless
