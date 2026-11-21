@@ -1,144 +1,396 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="Michael Lane Boldt — Designer and Technologist. M.Arch SCI-Arc. Gehry Prize recipient.">
-  <meta name="theme-color" content="#000000">
-  <title>MICHAEL LANE BOLDT</title>
-  <link rel="stylesheet" href="src/css/style.css">
-</head>
-<body>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Michael Lane Boldt — Designer and Technologist. M.Arch SCI-Arc. Gehry Prize recipient.">
+<title>MICHAEL LANE BOLDT</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light}
+body{
+  background:#fff;color:#111;
+  font-family:Arial,Helvetica,sans-serif;font-size:13.5px;line-height:1.13;
+  -webkit-text-stroke:0.25px #111;
+  padding:24px 1% 80px;
+}
+a{color:inherit;text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+a[data-u],.list a{display:block;width:max-content;max-width:100%}
+p{margin:0}
+b{font-weight:700}
+.name{font-weight:700;letter-spacing:-0.03em}
+.nw{white-space:nowrap}
 
-<!-- ── DESKTOP FRAME ─────────────────────────────────────────────────────── -->
-<!-- frame.png should have a transparent center — place in assets/            -->
-<div id="desktop-frame">
-  <img src="assets/frame.png" alt="">
+/* Fletcher grid: columns start at 1%, 18%, 35%, 52% */
+.row{display:grid;grid-template-columns:max(15.5%,11.5em) repeat(3,15.5%);column-gap:1.5%}
+.c1{grid-column:1}.c2{grid-column:2}.c3{grid-column:3}.c4{grid-column:4}
+.c34{grid-column:3/5}.c24{grid-column:2/5}
+
+/* ------------------------------------------------------------------
+   ARROW (from the AMBIENT arrow)
+   16 × 16 unit square, tip pointing right.
+     shaft:  thickness 8 (y 4→12), length 11.5 (x 0→11.5)
+     head:   length 4.5 (x 11.5→16), full height 16 (y 0→16)
+     tip:    (16, 8); head edges at ~61° to the shaft, ~57° at the tip
+   Ratios: shaft = 1/2 box height; head length = 9/32 of the box;
+   overall width = overall height.
+   At text size: box height 0.55em, sat 0.083em off the baseline so it
+   centres on the cap height (Arial caps = 0.716em); 0.4em after the word.
+------------------------------------------------------------------- */
+.arw{display:none;width:0.55em;height:0.55em;margin-left:0.4em;vertical-align:0.083em;fill:#111}
+nav a.on .arw{display:inline-block}
+nav a{display:block;width:max-content}
+
+section.row{display:none;margin-top:28px}
+body[data-view=home] section.row.open{display:grid}
+body[data-view=project] #project{display:grid}
+.list>span{display:block}
+.gap{margin-top:28px}
+.desc p+p{margin-top:1.13em}
+
+/* hover thumbnail — Fletcher's image slot at the right of the page */
+#thumb{position:absolute;left:75%;width:22.5%;display:none;pointer-events:none}
+/* thumbs never taller than 5:4 of the column width, so tall images (BASILICA) don't dominate */
+#thumb img{display:block;width:auto;height:auto;max-width:100%;max-height:min(calc(100vh - 140px), 28.125vw)}
+
+/* project images */
+/* images at 2/3 of the column 2–4 span, left-aligned on column 2 */
+.plates{margin-top:28px}
+/* sized by height, not width: the average image (h/w = 1.135 across all
+   projects) fills 75% of the space below the header; only images taller
+   than ~1.5:1 run past the screen. Never wider than 2/3 of columns 2–4. */
+.plates>*{width:min(66.667%, calc((100vh - 96px) * 0.75 / 1.135))}
+.plates>*+*{margin-top:14px}
+.plates img{display:block;height:auto;cursor:zoom-in}
+.plates .car img{width:100%}
+
+/* carousel — click right half forward, left half back; the cursor is the
+   AMBIENT arrow (16-unit grid), flipped for back. Hotspot at the tip. */
+.car{position:relative;user-select:none}
+.car img{cursor:inherit}
+.car.fwd{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='-1 -1 18 18'%3E%3Cpath d='M0 4H11.5V0L16 8L11.5 16V12H0Z' fill='%23111' stroke='%23fff' stroke-width='0.9' stroke-linejoin='miter'/%3E%3C/svg%3E") 21 11, e-resize}
+.car.back{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='-1 -1 18 18'%3E%3Cpath d='M16 4H4.5V0L0 8L4.5 16V12H16Z' fill='%23111' stroke='%23fff' stroke-width='0.9' stroke-linejoin='miter'/%3E%3C/svg%3E") 1 11, w-resize}
+.cnt{margin-top:6px;filter:url(#grain)}
+
+#lb{position:fixed;inset:0;background:#fff;display:none;align-items:center;justify-content:center;z-index:9;cursor:zoom-out}
+#lb.on{display:flex}
+#lb img{max-width:96vw;max-height:94vh;display:block}
+
+/* distortion: body grain filter from the original site (bfreq .09 / bdisp 1 / boct 4 / bseed 44) */
+header,section>p,section .desc,section .list{filter:url(#grain)}  /* text only — never the images */
+
+/* line-by-line stagger */
+.w{white-space:nowrap}
+.ln{display:block;white-space:nowrap;opacity:0}
+.ln.on{opacity:1}
+
+@media (max-width:900px){
+  body{padding:16px 16px 60px}
+  .row{grid-template-columns:1fr 1fr;column-gap:16px}
+  .c1,.c2,.c3,.c4,.c34,.c24{grid-column:auto}
+  header .row{grid-template-columns:max-content max-content max-content;column-gap:28px}
+  header .c1{grid-column:1}header .c2{grid-column:2}header .c3{grid-column:3}
+  #about p{grid-column:1/3}
+  #cv .c2{grid-column:1/3}
+  #cv .c3{grid-column:1}#cv .c4{grid-column:2}#cv .c34{grid-column:1/3}
+  #cv .c3,#cv .c4,#cv .c34{margin-bottom:8px}
+  #project .c2,#project .c34,#project .c24{grid-column:1/3}
+  #project .c34{margin-top:14px}
+  #thumb{display:none!important}
+  .plates>*{width:100%}
+}
+</style>
+</head>
+<body data-view="home">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="grain" x="-2%" y="-5%" width="106%" height="115%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="44" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="1" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <symbol id="arrow" viewBox="0 0 16 16"><path d="M0 4H11.5V0L16 8L11.5 16V12H0Z"/></symbol>
+</svg>
+
+<div>
+
+<header>
+  <div class="row">
+    <p class="c1 name nw"><a href="#" id="home-link" data-u>MICHAEL LANE BOLDT</a></p>
+    <nav class="c2">
+      <a href="#about" data-s="about"><span data-u style="display:inline-block">ABOUT</span><svg class="arw" aria-hidden="true"><use href="#arrow"/></svg></a>
+      <a href="#work" data-s="work"><span data-u style="display:inline-block">WORK</span><svg class="arw" aria-hidden="true"><use href="#arrow"/></svg></a>
+      <a href="#cv" data-s="cv"><span data-u style="display:inline-block">CV</span><svg class="arw" aria-hidden="true"><use href="#arrow"/></svg></a>
+    </nav>
+    <p class="c3 nw"><a href="https://instagram.com/f333dback" target="_blank" rel="noopener" data-u>@F333DBACK</a></p>
+  </div>
+</header>
+
+<main>
+
+<section id="work" class="row">
+  <div class="c2 list" id="projects"></div>
+</section>
+
+<section id="about" class="row" style="row-gap:28px">
+  <p class="c2"><b data-u>MICHAEL LANE BOLDT IS A DESIGNER AND TECHNOLOGIST WORKING ACROSS COMPUTATION, MATERIAL SYSTEMS, AND CULTURAL PRODUCTION.</b></p>
+  <p class="c2" data-u>HE HOLDS A MASTER OF ARCHITECTURE FROM THE SOUTHERN CALIFORNIA INSTITUTE OF ARCHITECTURE AND IS A GEHRY PRIZE RECIPIENT. HE CURRENTLY WORKS AS A ROBOTIC TECHNICIAN AND INSTRUCTOR AT SCI-ARC.</p>
+  <p class="c3" data-u>HIS DESIGN PRACTICE IS SITUATED BETWEEN MONUMENTAL AUSTERITY, MONOLITHIC EXCESS, AND MATERIAL RE-USE — USING AI, AUTOMATION, AND FABRICATION AS CULTURAL INFRASTRUCTURE. RECENT WORK ENGAGES POST-INDUSTRIAL AESTHETICS, SYSTEMS DESIGN, AND ANTI-EXTRACTIVE MATERIAL LOGICS ACROSS DIGITAL AND PHYSICAL PRODUCTION.</p>
+</section>
+
+<section id="cv" class="row"></section>
+
+<section id="project" class="row"></section>
+
+</main>
 </div>
 
-<!-- ── PHONE WRAP ────────────────────────────────────────────────────────── -->
-<div id="phone-wrap">
+<div id="thumb"><img alt=""></div>
+<div id="lb"><img alt=""></div>
 
-  <!-- Status bar -->
-  <div id="status-bar">
-    <span id="status-time">9:41</span>
-    <div class="status-icons">
-      <!-- Signal bars -->
-      <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-        <rect x="0" y="3" width="2" height="6" fill="white"/>
-        <rect x="3" y="2" width="2" height="7" fill="white"/>
-        <rect x="6" y="1" width="2" height="8" fill="white"/>
-        <rect x="9" y="0" width="2" height="9" fill="white"/>
-      </svg>
-      <!-- WiFi -->
-      <svg width="10" height="9" viewBox="0 0 10 9" fill="none">
-        <path d="M5 1.5 Q7.5 3.5 9 3 Q7 5 5 7 Q3 5 1 3 Q2.5 3.5 5 1.5Z" fill="none" stroke="white" stroke-width="1"/>
-        <circle cx="5" cy="5" r="1" fill="white"/>
-      </svg>
-      <!-- Battery -->
-      <svg width="18" height="9" viewBox="0 0 18 9" fill="none">
-        <rect x="0" y="1" width="15" height="7" rx="2" fill="none" stroke="white" stroke-width="1"/>
-        <rect x="1.5" y="2.5" width="10" height="4" rx="1" fill="white"/>
-        <rect x="16" y="3" width="1.5" height="3" rx="0.5" fill="white"/>
-      </svg>
-    </div>
-  </div>
+<script>
+{
+/* =================================================================
+   CV
+   rows  — [TITLE, LOCATION, DATE]
+   items — [CATEGORY, "ITEM, ITEM"]
+================================================================= */
+const CV = [
+  { h:"EXPERIENCE", rows:[
+    ["CO-FOUNDER / CPO",                  "AMBIENT CORPS",              "2026—PRESENT"],
+    ["ROBOTIC TECHNICIAN",                "SCI-ARC",                    "2025—PRESENT"],
+    ["FOUNDER / LEAD DESIGNER",           "DORADO GUITARS",             "2025—PRESENT"],
+    ["GRAPHIC DESIGNER",                  "THE BRUTALIST MAGAZINE",     "2025—PRESENT"],
+    ["INSTRUCTOR",                        "SCI-ARC",                    "2024—PRESENT"],
+    ["CARBON SPECIALIST",                 "DIGNE LLC",                  "2024—2025"],
+    ["TEACHING ASSISTANT",                "SCI-ARC",                    "2022—2024"],
+    ["ARCHITECTURE INTERN",               "MARKHARRISARCHITECTS",       "2021—2023"],
+    ["APPRENTICE",                        "ZIMBELMAN GUITARS",          "2021—2023"]]},
+  { h:"TEACHING + WORKSHOPS", rows:[
+    ["INSTRUCTOR — \u201CDESERT FORMATIONS\u201D WORKSHOP","UNIVERSIDAD DE LOS ANDES","FALL 2026"],
+    ["INSTRUCTOR — ROBOTIC FABRICATION WORKSHOP",        "SUTHERLIN-SANTO",          "FALL 2026"],
+    ["INSTRUCTOR — 3D PRINTED CERAMIC FACADE PANELS WORKSHOP","STUDIO RAP",           "FALL 2026"],
+    ["INSTRUCTOR — BIOMATERIAL PRINTING WORKSHOP",       "CITA — METTE RAMSGAARD THOMSEN","SUMMER 2026"],
+    ["INSTRUCTOR — DESIGN IMMERSION DAYS",               "SCI-ARC",                  "SUMMER 2026"],
+    ["ADVISOR — MS ARCHITECTURAL TECHNOLOGY THESIS",     "SCI-ARC",                  "2026"],
+    ["INSTRUCTOR — INCREMENTAL FORMING INDEPENDENT STUDY","SCI-ARC",                 "2026"]]},
+  { h:"PUBLICATIONS + COLLABORATIONS", rows:[
+    ["EDITOR",                            "CORPUS",                     "UPCOMING"],
+    ["VISUALS — PRE-LAUNCH EVENT",        "PRACTOPIA PERIODICAL",       "FALL 2026"],
+    ["DESIGNER — OFFRAMP 19 \u201CMONSTER\u201D","INDEPENDENT ARCHITECTURAL PUBLICATION","SUMMER 2026"]]},
+  { h:"AWARDS + RESIDENCIES", rows:[
+    ["DEPLOYING AGENCY AI RESIDENCY",     "",                           "UPCOMING"],
+    ["METROPOLIS FUTURE 100 — SPOLIA",    "METROPOLIS MAGAZINE",        "2025"],
+    ["GEHRY PRIZE, BEST GRADUATE THESIS — SPOLIA","SCI-ARC",            "2024"]]},
+  { h:"EXHIBITIONS", rows:[
+    ["TABULA",                            "SMALL GREEN DOOR GALLERY — LA DESIGN WEEKEND","2026"],
+    ["AMBIENT CHAIR_01",                  "VENIA STUDIO — THE BRUTALIST MAGAZINE PRE-LAUNCH, LA DESIGN WEEKEND","2026"],
+    ["COLLABORATOR — \u201CWE LOVE THE HEAT AND THE HEAT LOVES US\u201D","BLAM — LOS ANGELES / CDMX / BERLIN","2026"],
+    ["TABULA (SCIENCE IS THE POWER OF MAN)","2N1T3",                      "SUMMER 2026"],
+    ["SPOLIA — AUGMENTED REALITY DEMO WITH *TKEI","LA DESIGN WEEK",             "2025"],
+    ["EXHIBITION COORDINATOR",            "SHIGERU BAN — PAPER LOG HOUSE","2025"],
+    ["COLLABORATOR — \u201CVIEWS OF PLANET CITY\u201D","LOS ANGELES",   "2024"]]},
+  { h:"EDUCATION", rows:[
+    ["M.ARCH I",                          "SCI-ARC — LOS ANGELES",      "2021—2024"],
+    ["BS PHYSICS",                        "REGIS UNIVERSITY — DENVER",  "2015—2020"]]},
+  { h:"FABRICATION + ROBOTICS", items:[
+    ["ROBOTICS",        "ABB IRB 6700, TOOLPATH DEVELOPMENT, DIGITAL-TO-PHYSICAL PIPELINES"],
+    ["FABRICATION",     "CNC, LASER, PEN PLOT, 3D PRINT, METALWORK, CERAMICS, WOODWORK"],
+    ["SCANNING",        "LIDAR, PHOTOGRAMMETRY, POINT CLOUD PROCESSING, MESH RECONSTRUCTION"],
+    ["ELECTRONICS",     "PCB DESIGN, AUDIO ELECTRONICS, SOLDERING, ARDUINO"]]},
+  { h:"SOFTWARE", items:[
+    ["3D + COMPUTATION","RHINO, GRASSHOPPER, HOUDINI, ROBOTSTUDIO, UNITY, UNREAL ENGINE"],
+    ["AI + VISION",     "COMFYUI, CLOUDCOMPARE, POLYCAM, TOUCHDESIGNER"],
+    ["PRODUCTION",      "ADOBE SUITE, AUTOCAD, PROCESSING"]]}
+];
 
-  <!-- Screen -->
-  <div id="screen">
+document.getElementById('cv').innerHTML = CV.map((s,i)=>{
+  const g = i ? ' gap' : '';
+  const head = `<p class="c2${g}"><b data-u>${s.h}</b></p>`;
+  const body = s.rows
+    ? s.rows.map(([t,l,d])=>`<p class="c2" data-u>${t}</p><p class="c3" data-u>${l}</p><p class="c4" data-u>${d}</p>`).join('')
+    : s.items.map(([c,it])=>`<p class="c2" data-u>${c}</p><p class="c34" data-u>${it}</p>`).join('');
+  return head + body;
+}).join('');
 
-    <!-- Top safe zone -->
-    <div id="topbar"></div>
+/* =================================================================
+   LINE-BY-LINE STAGGER — 35 ms per line after a 60 ms pause
+================================================================= */
+const T_LINE = 35, T_START = 60;
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    <!-- Name header -->
-    <div id="name-area">
-      <svg id="name-svg" preserveAspectRatio="xMidYMid meet" class="name-svg">
-        <defs>
-          <filter id="gn" x="-4%" y="-30%" width="110%" height="170%" color-interpolation-filters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="4" seed="67" result="noise"/>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G"/>
-          </filter>
-        </defs>
-        <text
-          id="name-text"
-          x="0" y="36"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="32"
-          font-weight="700"
-          letter-spacing="-0.03em"
-          fill="#111"
-          stroke="#111"
-          stroke-width="0.4"
-          filter="url(#gn)">MICHAEL LANE BOLDT</text>
-      </svg>
-    </div>
+function split(el){
+  if(el.dataset.src===undefined) el.dataset.src = el.textContent.trim().replace(/\s+/g,' ');
+  if(!el.dataset.src){ el.innerHTML=''; return []; }
+  el.innerHTML = el.dataset.src.split(' ').map(w=>`<span class="w">${w}</span>`).join(' ');
+  const lines=[]; let top=null, cur=[];
+  el.querySelectorAll('.w').forEach(s=>{
+    if(top===null||Math.abs(s.offsetTop-top)>2){ if(cur.length) lines.push(cur); cur=[]; top=s.offsetTop; }
+    cur.push(s.textContent);
+  });
+  if(cur.length) lines.push(cur);
+  el.innerHTML = lines.map(l=>`<span class="ln">${l.join(' ')}</span>`).join('');
+  return [...el.querySelectorAll('.ln')];
+}
+function stagger(els){
+  const lns = els.flatMap(split);
+  if(RM){ lns.forEach(l=>l.classList.add('on')); return; }
+  const rows = new Map();
+  lns.forEach(l=>{
+    const y = Math.round(l.getBoundingClientRect().top + scrollY);
+    if(!rows.has(y)) rows.set(y,[]);
+    rows.get(y).push(l);
+  });
+  [...rows.keys()].sort((a,b)=>a-b).forEach((y,i)=>
+    setTimeout(()=>rows.get(y).forEach(l=>l.classList.add('on')), T_START + i*T_LINE));
+}
+let rz; addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{
+  document.querySelectorAll('header [data-u], section [data-u]')
+    .forEach(el=>{ if(el.offsetParent) split(el).forEach(l=>l.classList.add('on')); });
+},150)});
 
-    <!-- Content area -->
-    <div id="content-wrap">
+/* =================================================================
+   PROJECTS — read from projects/ exactly as on the current site:
+   index.json (order) → manifest.json (images, carousel) + meta.txt + description.txt
+================================================================= */
+let PROJECTS = [];
+const parseMeta = t => Object.fromEntries(t.split('\n').map(l=>l.match(/^(\w+):\s*(.*)$/)).filter(Boolean).map(m=>[m[1],m[2].trim()]));
+const num = s => parseInt(String(s).replace(/\D/g,''),10);
 
-      <!-- ── HOME PAGE ─────────────────────────────────────── -->
-      <div id="home-page" class="page">
+async function loadProjects(){
+  const folders = await (await fetch('projects/index.json')).json();
+  PROJECTS = await Promise.all(folders.map(async folder=>{
+    const base = `projects/${folder}`;
+    const [m, meta, desc] = await Promise.all([
+      fetch(`${base}/manifest.json`).then(r=>r.json()),
+      fetch(`${base}/meta.txt`).then(r=>r.ok?r.text():'').catch(()=>''),
+      fetch(`${base}/description.txt`).then(r=>r.text())
+    ]);
+    const mt = parseMeta(meta);
+    /* image order: plain images and the carousel folder, sorted by number;
+       carousel slides are laid out in the stack in place of the carousel */
+    const seq = (m.images||[]).map(f=>({n:num(f),car:false,srcs:[`${base}/images/${f}`]}));
+    if(m.carousel_folder) seq.push({n:num(m.carousel_folder),car:true,
+      srcs:Array.from({length:m.carousel_slides},(_,i)=>`${base}/images/${m.carousel_folder}/${String(i+1).padStart(2,'0')}.jpg`)});
+    seq.sort((a,b)=>a.n-b.n);
+    return {
+      slug: mt.slug || folder.replace(/^\d+-/,''),
+      title: mt.title || m.title,
+      year: mt.year || '',
+      desc: desc.trim().split(/\n\s*\n+/).map(p=>p.trim()).filter(Boolean),
+      thumb: `${base}/thumb/01.jpg`,
+      images: seq
+    };
+  }));
+  document.getElementById('projects').innerHTML = PROJECTS.map(p=>
+    `<span><a href="#${p.slug}" data-slug="${p.slug}" data-u>${p.title}${p.year?` (${p.year})`:''}</a></span>`).join('');
+  PROJECTS.forEach(p=>{ const i=new Image(); i.src=p.thumb; });
+}
 
-        <!-- Navigation SVG -->
-        <svg id="nav-svg" style="position:absolute;display:block;overflow:visible;">
-          <defs>
-            <filter id="gnav" x="-12%" y="-30%" width="130%" height="175%" color-interpolation-filters="sRGB">
-              <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="25" result="noise"/>
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
-            </filter>
-          </defs>
-        </svg>
+/* hover thumbnail */
+const thumb = document.getElementById('thumb');
+document.getElementById('projects').addEventListener('mouseover',e=>{
+  const a=e.target.closest('a[data-slug]'); if(!a) return;
+  const p=PROJECTS.find(x=>x.slug===a.dataset.slug);
+  thumb.querySelector('img').src=p.thumb;
+  thumb.style.top = (document.getElementById('work').getBoundingClientRect().top + scrollY) + 'px';
+  thumb.style.display='block';
+});
+document.getElementById('projects').addEventListener('mouseleave',()=>thumb.style.display='none');
 
-        <!-- Invisible nav trigger buttons (centered on text baselines) -->
-        <button id="work-btn"    class="nav-btn" aria-label="Work"></button>
-        <button id="about-btn"   class="nav-btn" aria-label="About"></button>
-        <button id="cv-btn"      class="nav-btn" aria-label="CV"></button>
-        <button id="contact-btn" class="nav-btn" aria-label="Contact"></button>
+function renderProject(p){
+  const s = document.getElementById('project');
+  s.innerHTML = `
+    <p class="c2"><a href="#work" id="proj-back" data-u>${p.title}${p.year?` (${p.year})`:''}</a></p>
+    <div class="c34 desc">${p.desc.map(d=>`<p>${d.split('\n').map(l=>`<span data-u style="display:block">${l.trim()}</span>`).join('')}</p>`).join('')}</div>
+    <div class="c24 plates">${p.images.map(it=> it.car
+      ? `<div><div class="car" data-i="0" data-srcs='${JSON.stringify(it.srcs)}'><img src="${it.srcs[0]}" alt="${p.title}"></div><p class="cnt">01 / ${String(it.srcs.length).padStart(2,'0')}</p></div>`
+      : `<img src="${it.srcs[0]}" alt="${p.title}" loading="lazy">`).join('')}</div>`;
+  s.querySelectorAll('.car').forEach(c=>JSON.parse(c.dataset.srcs).forEach(u=>{const i=new Image();i.src=u;}));
+  stagger([...s.querySelectorAll('[data-u]')]);
+}
 
-        <!-- Data block — SVG rendered by renderData() in site.js -->
-        <div id="data-block"></div>
+/* lightbox — click anywhere or Esc to close */
+const lb = document.getElementById('lb');
+function step(c,d){
+  const srcs=JSON.parse(c.dataset.srcs), n=srcs.length;
+  const i=(+c.dataset.i + d + n) % n;
+  c.dataset.i=i; c.querySelector('img').src=srcs[i];
+  c.nextElementSibling.textContent=`${String(i+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}`;
+}
+const projEl=document.getElementById('project');
+projEl.addEventListener('mousemove',e=>{
+  const c=e.target.closest('.car'); if(!c) return;
+  const r=c.getBoundingClientRect(), fwd=(e.clientX-r.left) > r.width/2;
+  c.classList.toggle('fwd',fwd); c.classList.toggle('back',!fwd);
+});
+addEventListener('keydown',e=>{
+  if(document.body.dataset.view!=='project'||lb.classList.contains('on')) return;
+  const c=projEl.querySelector('.car'); if(!c) return;
+  if(e.key==='ArrowRight') step(c,1); if(e.key==='ArrowLeft') step(c,-1);
+});
+projEl.addEventListener('click',e=>{
+  if(e.target.closest('#proj-back')){ e.preventDefault(); history.pushState(null,'','#work'); showHome('work'); return; }
+  const c=e.target.closest('.car');
+  if(c){ const r=c.getBoundingClientRect(); step(c,(e.clientX-r.left) > r.width/2 ? 1 : -1); return; }
+  if(e.target.tagName!=='IMG') return;
+  lb.querySelector('img').src=e.target.src; lb.classList.add('on');
+});
+lb.addEventListener('click',()=>lb.classList.remove('on'));
+addEventListener('keydown',e=>{ if(e.key==='Escape') lb.classList.remove('on'); });
 
-      </div><!-- /home-page -->
+/* =================================================================
+   VIEWS + EXPANDING SECTIONS
+================================================================= */
+const SECTIONS = ['about','work','cv'];
+const navA = id => document.querySelector(`nav a[data-s="${id}"]`);
 
-      <!-- ── WORK PAGE ──────────────────────────────────────── -->
-      <div id="work-page" class="page sub-page">
-        <div id="work-inner"></div>
-      </div>
+function setArrows(){
+  const proj = document.body.dataset.view==='project';
+  SECTIONS.forEach(id=>navA(id).classList.toggle('on',
+    proj ? id==='work' : document.getElementById(id).classList.contains('open')));
+}
+function toggle(id, force){
+  const s = document.getElementById(id);
+  const open = force ?? !s.classList.contains('open');
+  s.classList.toggle('open', open);
+  if(open) stagger([...s.querySelectorAll('[data-u]')]);
+  if(id==='work' && !open) thumb.style.display='none';
+  setArrows();
+}
+function showHome(openId){
+  document.body.dataset.view='home';
+  SECTIONS.forEach(id=>document.getElementById(id).classList.toggle('open', id===openId));
+  if(openId) stagger([...document.getElementById(openId).querySelectorAll('[data-u]')]);
+  setArrows(); scrollTo(0,0);
+}
+function showProject(p){
+  document.body.dataset.view='project';
+  thumb.style.display='none';
+  renderProject(p); setArrows(); scrollTo(0,0);
+}
+function route(){
+  const h = location.hash.slice(1);
+  const p = PROJECTS.find(x=>x.slug===h);
+  if(p) return showProject(p);
+  showHome(SECTIONS.includes(h) ? h : null);
+}
 
-      <!-- ── PROJECT PAGE ───────────────────────────────────── -->
-      <div id="project-page" class="page sub-page">
-        <div id="project-inner"></div>
-      </div>
+document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();
+  const id=a.dataset.s;
+  if(document.body.dataset.view==='project'){ history.pushState(null,'','#'+id); showHome(id); return; }
+  toggle(id);
+  history.replaceState(null,'', document.getElementById(id).classList.contains('open') ? '#'+id : location.pathname);
+}));
+document.getElementById('home-link').addEventListener('click',e=>{
+  e.preventDefault(); history.pushState(null,'',location.pathname); showHome(null);
+});
+addEventListener('hashchange',route);
 
-      <!-- ── ABOUT PAGE ─────────────────────────────────────── -->
-      <div id="about-page" class="page sub-page">
-        <div id="about-inner" style="width:100%;position:relative;min-height:100%;"></div>
-      </div>
-
-      <!-- ── CV PAGE ────────────────────────────────────────── -->
-      <div id="cv-page" class="page sub-page">
-        <div id="cv-inner" style="width:100%;position:relative;min-height:100%;"></div>
-      </div>
-
-      <!-- ── CONTACT PAGE ───────────────────────────────────── -->
-      <div id="contact-page" class="page sub-page">
-        <div id="contact-inner" style="width:100%;position:relative;min-height:100%;"></div>
-      </div>
-
-      <!-- Flash overlay (white cut between page transitions) -->
-      <div id="flash-overlay"></div>
-
-    </div><!-- /content-wrap -->
-
-    <!-- Bottom safe zone -->
-    <div id="botbar"></div>
-
-  </div><!-- /screen -->
-</div><!-- /phone-wrap -->
-
-<!-- Lightbox — desktop image zoom, built by JS -->
-<div id="lightbox"><img src="" alt=""></div>
-
-<script src="src/js/site.js"></script>
+stagger([...document.querySelectorAll('header [data-u]')]);
+loadProjects().then(route).catch(()=>route());
+}
+</script>
 </body>
 </html>
