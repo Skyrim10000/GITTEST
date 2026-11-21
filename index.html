@@ -60,7 +60,8 @@ body[data-view=project] #project{display:grid}
 /* sized by height, not width: the average image (h/w = 1.135 across all
    projects) fills 75% of the space below the header; only images taller
    than ~1.5:1 run past the screen. Never wider than 2/3 of columns 2–4. */
-.plates>*{width:min(66.667%, calc((100vh - 96px) * 0.75 / 1.135))}
+/* images start on column 3, flush with the description; span = columns 3–4 */
+.plates>*{width:min(100%, calc((100vh - 96px) * 0.75 / 1.135))}
 .plates>*+*{margin-top:14px}
 .plates img{display:block;height:auto;cursor:zoom-in}
 .plates .car img{width:100%}
@@ -253,32 +254,37 @@ let rz; addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{
    PROJECTS — read from projects/ exactly as on the current site:
    index.json (order) → manifest.json (images, carousel) + meta.txt + description.txt
 ================================================================= */
+/* SITE VERSION — change this on every update so browsers fetch fresh
+   project files (lists, descriptions, images) instead of cached ones. */
+const VERSION = '2026-11-20b';
+const V = u => u + '?v=' + VERSION;
+
 let PROJECTS = [];
 const parseMeta = t => Object.fromEntries(t.split('\n').map(l=>l.match(/^(\w+):\s*(.*)$/)).filter(Boolean).map(m=>[m[1],m[2].trim()]));
 const num = s => parseInt(String(s).replace(/\D/g,''),10);
 
 async function loadProjects(){
-  const folders = await (await fetch('projects/index.json')).json();
+  const folders = await (await fetch(V('projects/index.json'))).json();
   PROJECTS = await Promise.all(folders.map(async folder=>{
     const base = `projects/${folder}`;
     const [m, meta, desc] = await Promise.all([
-      fetch(`${base}/manifest.json`).then(r=>r.json()),
-      fetch(`${base}/meta.txt`).then(r=>r.ok?r.text():'').catch(()=>''),
-      fetch(`${base}/description.txt`).then(r=>r.text())
+      fetch(V(`${base}/manifest.json`)).then(r=>r.json()),
+      fetch(V(`${base}/meta.txt`)).then(r=>r.ok?r.text():'').catch(()=>''),
+      fetch(V(`${base}/description.txt`)).then(r=>r.text())
     ]);
     const mt = parseMeta(meta);
     /* image order: plain images and the carousel folder, sorted by number;
        carousel slides are laid out in the stack in place of the carousel */
-    const seq = (m.images||[]).map(f=>({n:num(f),car:false,srcs:[`${base}/images/${f}`]}));
+    const seq = (m.images||[]).map(f=>({n:num(f),car:false,srcs:[V(`${base}/images/${f}`)]}));
     if(m.carousel_folder) seq.push({n:num(m.carousel_folder),car:true,
-      srcs:Array.from({length:m.carousel_slides},(_,i)=>`${base}/images/${m.carousel_folder}/${String(i+1).padStart(2,'0')}.jpg`)});
+      srcs:Array.from({length:m.carousel_slides},(_,i)=>V(`${base}/images/${m.carousel_folder}/${String(i+1).padStart(2,'0')}.jpg`))});
     seq.sort((a,b)=>a.n-b.n);
     return {
       slug: mt.slug || folder.replace(/^\d+-/,''),
       title: mt.title || m.title,
       year: mt.year || '',
       desc: desc.trim().split(/\n\s*\n+/).map(p=>p.trim()).filter(Boolean),
-      thumb: `${base}/thumb/01.jpg`,
+      thumb: V(`${base}/thumb/01.jpg`),
       images: seq
     };
   }));
@@ -303,7 +309,7 @@ function renderProject(p){
   s.innerHTML = `
     <p class="c2"><a href="#work" id="proj-back" data-u>${p.title}${p.year?` (${p.year})`:''}</a></p>
     <div class="c34 desc">${p.desc.map(d=>`<p>${d.split('\n').map(l=>`<span data-u style="display:block">${l.trim()}</span>`).join('')}</p>`).join('')}</div>
-    <div class="c24 plates">${p.images.map(it=> it.car
+    <div class="c34 plates">${p.images.map(it=> it.car
       ? `<div><div class="car" data-i="0" data-srcs='${JSON.stringify(it.srcs)}'><img src="${it.srcs[0]}" alt="${p.title}"></div><p class="cnt">01 / ${String(it.srcs.length).padStart(2,'0')}</p></div>`
       : `<img src="${it.srcs[0]}" alt="${p.title}" loading="lazy">`).join('')}</div>`;
   s.querySelectorAll('.car').forEach(c=>JSON.parse(c.dataset.srcs).forEach(u=>{const i=new Image();i.src=u;}));
